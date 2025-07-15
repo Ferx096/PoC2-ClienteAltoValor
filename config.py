@@ -22,6 +22,13 @@ AZURE_BLOB_CONFIG = {
         "AZURE_BLOB_ENDPOINT_SUFFIX", "core.windows.net"
     ),
 }
+# Configuracion Azure SQL Server
+AZURE_SQL_CONFIG = {
+    "AZURE_SQL_SERVER": os.getenv("AZURE_SQL_SERVER"),
+    "AZURE_SQL_USERNAME": os.getenv("AZURE_SQL_USERNAME"),
+    "AZURE_SQL_PASSWORD": os.getenv("AZURE_SQL_PASSWORD"),
+    "AZURE_SQL_CONNECTION_STRING": os.getenv("AZURE_SQL_CONNECTION_STRING"),
+}
 
 # Configuracion Azure
 AZURE_CONFIG = {
