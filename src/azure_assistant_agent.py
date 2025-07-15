@@ -1,30 +1,32 @@
 #!/usr/bin/env python3
 """
 Azure OpenAI Assistant - Implementación 100% Azure nativa
-Recomendación principal para el agente SPP
+Agente especializado en rentabilidad de fondos SPP
 """
 import os
 import json
 import time
 from typing import Dict, List, Any, Optional
 from config import get_openai_client, get_deployment_name
+from .data_manager import get_data_manager
 
 class SPPAssistantAgent:
-    """Agente SPP usando Azure OpenAI Assistants API - 100% Azure nativo"""
+    """Agente SPP para análisis de rentabilidad de fondos de pensiones - 100% Azure nativo"""
     
     def __init__(self):
         self.client = get_openai_client()
+        self.data_manager = get_data_manager()
         
         self.assistant_id = None
         self.thread_id = None
         
-        # Funciones especializadas para datos SPP
+        # Funciones especializadas para datos de rentabilidad
         self.functions = [
             {
                 "type": "function",
                 "function": {
-                    "name": "get_afiliados_by_afp",
-                    "description": "Obtiene información de afiliados activos por AFP específica",
+                    "name": "get_rentability_by_afp",
+                    "description": "Obtiene información de rentabilidad por AFP específica",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -32,13 +34,18 @@ class SPPAssistantAgent:
                                 "type": "string",
                                 "description": "Nombre de la AFP (Habitat, Integra, Prima, Profuturo)"
                             },
+                            "fund_type": {
+                                "type": "integer",
+                                "description": "Tipo de fondo (0, 1, 2, 3)"
+                            },
                             "period": {
                                 "type": "string", 
                                 "description": "Período en formato YYYY-MM"
                             },
-                            "demographic_filter": {
-                                "type": "object",
-                                "description": "Filtros demográficos (sexo, edad, departamento)"
+                            "rentability_type": {
+                                "type": "string",
+                                "enum": ["nominal", "real", "both"],
+                                "description": "Tipo de rentabilidad a consultar"
                             }
                         },
                         "required": ["afp_name"]
@@ -48,8 +55,8 @@ class SPPAssistantAgent:
             {
                 "type": "function",
                 "function": {
-                    "name": "compare_afps",
-                    "description": "Compara métricas entre diferentes AFPs",
+                    "name": "compare_afp_rentability",
+                    "description": "Compara rentabilidad entre diferentes AFPs",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -58,32 +65,36 @@ class SPPAssistantAgent:
                                 "items": {"type": "string"},
                                 "description": "Lista de AFPs a comparar"
                             },
-                            "metrics": {
-                                "type": "array", 
-                                "items": {"type": "string"},
-                                "description": "Métricas a comparar (afiliados_activos, nuevos_afiliados, traspasos)"
+                            "fund_type": {
+                                "type": "integer",
+                                "description": "Tipo de fondo (0, 1, 2, 3)"
                             },
                             "period": {
                                 "type": "string",
                                 "description": "Período de comparación"
+                            },
+                            "rentability_type": {
+                                "type": "string",
+                                "enum": ["nominal", "real", "both"],
+                                "description": "Tipo de rentabilidad a comparar"
                             }
                         },
-                        "required": ["afps", "metrics"]
+                        "required": ["afps"]
                     }
                 }
             },
             {
                 "type": "function", 
                 "function": {
-                    "name": "analyze_demographics",
-                    "description": "Analiza distribución demográfica de afiliados",
+                    "name": "analyze_fund_performance",
+                    "description": "Analiza el rendimiento de diferentes tipos de fondos",
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "demographic_type": {
-                                "type": "string",
-                                "enum": ["age", "gender", "department", "income"],
-                                "description": "Tipo de análisis demográfico"
+                            "fund_types": {
+                                "type": "array",
+                                "items": {"type": "integer"},
+                                "description": "Tipos de fondos a analizar (0, 1, 2, 3)"
                             },
                             "afp_filter": {
                                 "type": "string",
@@ -92,77 +103,92 @@ class SPPAssistantAgent:
                             "period": {
                                 "type": "string",
                                 "description": "Período de análisis"
+                            },
+                            "time_horizon": {
+                                "type": "string",
+                                "enum": ["1_year", "2_years", "3_years", "5_years", "all"],
+                                "description": "Horizonte temporal de análisis"
                             }
                         },
-                        "required": ["demographic_type"]
+                        "required": ["fund_types"]
                     }
                 }
             },
             {
                 "type": "function",
                 "function": {
-                    "name": "get_trends",
-                    "description": "Analiza tendencias temporales en el SPP",
+                    "name": "get_historical_trends",
+                    "description": "Analiza tendencias históricas de rentabilidad",
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "metric": {
+                            "afp_name": {
                                 "type": "string",
-                                "description": "Métrica a analizar (afiliados, traspasos, nuevos)"
+                                "description": "AFP específica o 'all' para todas"
                             },
-                            "time_range": {
-                                "type": "object",
-                                "properties": {
-                                    "start_period": {"type": "string"},
-                                    "end_period": {"type": "string"}
-                                }
+                            "fund_type": {
+                                "type": "integer",
+                                "description": "Tipo de fondo"
                             },
-                            "grouping": {
+                            "time_periods": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Períodos a analizar"
+                            },
+                            "analysis_type": {
                                 "type": "string",
-                                "enum": ["monthly", "quarterly", "yearly"],
-                                "description": "Agrupación temporal"
+                                "enum": ["evolution", "volatility", "consistency"],
+                                "description": "Tipo de análisis temporal"
                             }
                         },
-                        "required": ["metric"]
+                        "required": ["afp_name", "fund_type"]
                     }
                 }
             }
         ]
     
     def create_assistant(self) -> str:
-        """Crea el asistente especializado en SPP"""
+        """Crea el asistente especializado en rentabilidad de fondos SPP"""
         
         assistant = self.client.beta.assistants.create(
-            name="SPP Data Analyst Expert",
-            instructions="""Eres un analista experto del Sistema Privado de Pensiones (SPP) de Perú.
+            name="SPP Rentability Analyst Expert",
+            instructions="""Eres un analista experto en rentabilidad de fondos del Sistema Privado de Pensiones (SPP) de Perú.
 
 ESPECIALIZACIÓN:
-- Análisis de datos de afiliados activos por AFP
-- Comparaciones entre AFPs (Habitat, Integra, Prima, Profuturo)
-- Análisis demográficos (edad, sexo, departamento)
-- Tendencias de afiliación y traspasos
-- Estadísticas del mercado previsional privado
+- Análisis de rentabilidad nominal y real de fondos de pensiones
+- Comparaciones de rendimiento entre AFPs (Habitat, Integra, Prima, Profuturo)
+- Análisis de diferentes tipos de fondos (Tipo 0, 1, 2, 3)
+- Evaluación de horizontes temporales (1 año, 2 años, 3 años, etc.)
+- Tendencias históricas de rentabilidad
 
 DATOS DISPONIBLES:
-- Boletines mensuales del SPP
-- Número de afiliados activos por AFP, sexo y edad
-- Distribución geográfica por departamentos
-- Nuevos afiliados y solicitudes de traspaso
-- Evolución temporal de métricas clave
+- Reportes de rentabilidad acumulada y anualizada por AFP
+- Datos de rentabilidad nominal y real por tipo de fondo
+- Información histórica de múltiples períodos
+- Comparaciones temporales de rendimiento
+- Datos actualizados hasta 2025
+
+TIPOS DE FONDOS:
+- Fondo Tipo 0: Conservador (menor riesgo, menor rentabilidad esperada)
+- Fondo Tipo 1: Mixto conservador
+- Fondo Tipo 2: Mixto
+- Fondo Tipo 3: Crecimiento (mayor riesgo, mayor rentabilidad esperada)
 
 INSTRUCCIONES:
-1. Usa las funciones disponibles para obtener datos específicos
-2. Proporciona números exactos cuando estén disponibles
-3. Explica tendencias y patrones relevantes
-4. Compara AFPs cuando sea apropiado
-5. Indica claramente las fuentes y períodos de los datos
-6. Si no tienes información específica, indícalo claramente
+1. Usa las funciones disponibles para obtener datos específicos de rentabilidad
+2. Proporciona porcentajes exactos de rentabilidad cuando estén disponibles
+3. Explica diferencias entre rentabilidad nominal y real
+4. Compara rendimiento entre AFPs y tipos de fondos
+5. Analiza tendencias temporales y horizontes de inversión
+6. Indica claramente las fuentes, períodos y tipos de datos
+7. Proporciona contexto sobre el significado de los resultados
 
 ESTILO DE RESPUESTA:
-- Profesional y técnico
-- Datos precisos con contexto
-- Insights relevantes para el sector previsional
-- Formato claro y estructurado""",
+- Profesional y técnico especializado en inversiones
+- Datos precisos con análisis contextual
+- Insights relevantes para decisiones de inversión previsional
+- Formato claro con comparaciones y recomendaciones
+- Explicaciones sobre riesgo y rentabilidad""",
             
             model=get_deployment_name(),
             tools=self.functions
@@ -231,99 +257,92 @@ ESTILO DE RESPUESTA:
         return run
     
     def execute_function(self, function_name: str, arguments: Dict) -> Dict:
-        """Ejecuta las funciones especializadas del SPP"""
+        """Ejecuta las funciones especializadas de rentabilidad SPP"""
         
-        if function_name == "get_afiliados_by_afp":
-            return self._get_afiliados_by_afp(arguments)
-        elif function_name == "compare_afps":
-            return self._compare_afps(arguments)
-        elif function_name == "analyze_demographics":
-            return self._analyze_demographics(arguments)
-        elif function_name == "get_trends":
-            return self._get_trends(arguments)
+        if function_name == "get_rentability_by_afp":
+            return self._get_rentability_by_afp(arguments)
+        elif function_name == "compare_afp_rentability":
+            return self._compare_afp_rentability(arguments)
+        elif function_name == "analyze_fund_performance":
+            return self._analyze_fund_performance(arguments)
+        elif function_name == "get_historical_trends":
+            return self._get_historical_trends(arguments)
         else:
             return {"error": f"Función {function_name} no encontrada"}
     
-    def _get_afiliados_by_afp(self, args: Dict) -> Dict:
-        """Obtiene datos de afiliados por AFP"""
-        afp_name = args.get("afp_name", "").lower()
+    def _get_rentability_by_afp(self, args: Dict) -> Dict:
+        """Obtiene datos de rentabilidad por AFP usando el gestor de datos"""
+        afp_name = args.get("afp_name", "")
+        fund_type = args.get("fund_type", 0)
+        period = args.get("period")
         
-        # Datos simulados basados en el Excel real
-        afp_data = {
-            "habitat": {
-                "afiliados_activos": 1026513,
-                "porcentaje_hombres": 55.49,
-                "porcentaje_mujeres": 44.51,
-                "participacion_mercado": 10.43,
-                "periodo": "2025-01"
-            },
-            "integra": {
-                "afiliados_activos": 4759854,
-                "porcentaje_hombres": 52.1,
-                "porcentaje_mujeres": 47.9,
-                "participacion_mercado": 48.34,
-                "periodo": "2025-01"
-            }
-        }
-        
-        return afp_data.get(afp_name, {"error": f"AFP {afp_name} no encontrada"})
+        return self.data_manager.get_rentability_by_afp(afp_name, fund_type, period)
     
-    def _compare_afps(self, args: Dict) -> Dict:
-        """Compara métricas entre AFPs"""
+    def _compare_afp_rentability(self, args: Dict) -> Dict:
+        """Compara rentabilidad entre AFPs usando el gestor de datos"""
         afps = args.get("afps", [])
-        metrics = args.get("metrics", [])
+        fund_type = args.get("fund_type", 0)
+        period = args.get("period")
         
-        comparison = {}
-        for afp in afps:
-            afp_data = self._get_afiliados_by_afp({"afp_name": afp})
-            if "error" not in afp_data:
-                comparison[afp] = afp_data
+        return self.data_manager.compare_afp_rentability(afps, fund_type, period)
+    
+    def _analyze_fund_performance(self, args: Dict) -> Dict:
+        """Analiza el rendimiento de diferentes tipos de fondos usando el gestor de datos"""
+        fund_types = args.get("fund_types", [0])
+        afp_filter = args.get("afp_filter", "all")
+        
+        return self.data_manager.analyze_fund_performance(fund_types, afp_filter)
+    
+    def _get_historical_trends(self, args: Dict) -> Dict:
+        """Analiza tendencias históricas de rentabilidad"""
+        afp_name = args.get("afp_name", "all")
+        fund_type = args.get("fund_type", 0)
+        analysis_type = args.get("analysis_type", "evolution")
+        
+        # Obtener datos disponibles para análisis temporal
+        available_periods = self.data_manager.get_available_periods(fund_type)
+        
+        if not available_periods:
+            return {"error": f"No hay datos disponibles para fondo tipo {fund_type}"}
+        
+        # Análisis básico con datos disponibles
+        if analysis_type == "evolution":
+            evolution_data = {}
+            for period in available_periods:
+                if afp_name != "all":
+                    afp_data = self.data_manager.get_rentability_by_afp(afp_name, fund_type, period)
+                    if "error" not in afp_data:
+                        rentability = afp_data["rentability_data"]
+                        if "period_1_nominal" in rentability:
+                            evolution_data[period] = rentability["period_1_nominal"]
+                else:
+                    # Promedio de todas las AFPs
+                    comparison = self.data_manager.compare_afp_rentability(
+                        self.data_manager.get_all_afps(), fund_type, period
+                    )
+                    if "comparison" in comparison and comparison["comparison"]:
+                        values = []
+                        for afp_data in comparison["comparison"].values():
+                            if "period_1_nominal" in afp_data:
+                                values.append(afp_data["period_1_nominal"])
+                        if values:
+                            evolution_data[period] = sum(values) / len(values)
+            
+            return {
+                "afp_name": afp_name,
+                "fund_type": fund_type,
+                "analysis_type": analysis_type,
+                "historical_data": evolution_data,
+                "available_periods": available_periods,
+                "insights": f"Evolución temporal de rentabilidad para {afp_name} - Fondo Tipo {fund_type}"
+            }
         
         return {
-            "comparison": comparison,
-            "metrics_requested": metrics,
-            "period": "2025-01"
-        }
-    
-    def _analyze_demographics(self, args: Dict) -> Dict:
-        """Analiza distribución demográfica"""
-        demo_type = args.get("demographic_type")
-        
-        if demo_type == "gender":
-            return {
-                "analysis_type": "gender",
-                "data": {
-                    "habitat": {"hombres": 55.49, "mujeres": 44.51},
-                    "integra": {"hombres": 52.1, "mujeres": 47.9}
-                },
-                "insights": "Los hombres representan mayor proporción en ambas AFPs"
-            }
-        elif demo_type == "age":
-            return {
-                "analysis_type": "age",
-                "data": {
-                    "jovenes_21_30": "35% del total",
-                    "adultos_31_50": "45% del total", 
-                    "mayores_50": "20% del total"
-                },
-                "insights": "Concentración en población económicamente activa"
-            }
-        
-        return {"error": f"Tipo demográfico {demo_type} no disponible"}
-    
-    def _get_trends(self, args: Dict) -> Dict:
-        """Analiza tendencias temporales"""
-        metric = args.get("metric")
-        
-        return {
-            "metric": metric,
-            "trend": "crecimiento_moderado",
-            "data": {
-                "2024-12": 9500000,
-                "2025-01": 9786367
-            },
-            "growth_rate": "3.0% mensual",
-            "insights": f"Tendencia positiva en {metric}"
+            "afp_name": afp_name,
+            "fund_type": fund_type,
+            "analysis_type": analysis_type,
+            "available_periods": available_periods,
+            "insights": f"Análisis de {analysis_type} disponible con datos históricos limitados"
         }
     
     def get_response(self) -> str:
