@@ -4,14 +4,6 @@ from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 from pathlib import Path
 
 load_dotenv()
-# Configuración Cosmosdb
-AZURE_COSMOS_DB = {
-    "COSMOS_ENDPOINT": os.getenv("COSMOS_ENDPOINT"),
-    "COSMOS_KEY": os.getenv("COSMOS_KEY"),
-    "COSMOS_DATABASE": os.getenv("COSMOS_DATABASE"),
-    "COSMOS_CONTAINER": os.getenv("COSMOS_CONTAINER"),
-}
-
 
 # Configuración de Azure Blob Storage
 AZURE_BLOB_CONFIG = {
@@ -52,11 +44,3 @@ def get_embedding():
         azure_deployment=AZURE_CONFIG["embedding_deployment"],
         api_version=AZURE_CONFIG["api_version"],
     )
-
-
-SEARCH_ENDPOINT = "https://your-search.search.windows.net"
-SEARCH_KEY = "your-search-key"
-SEARCH_INDEX = "financial-index"
-
-TEXT_ANALYTICS_ENDPOINT = "https://your-text-analytics.cognitiveservices.azure.com/"
-TEXT_ANALYTICS_KEY = "your-text-analytics-key"
