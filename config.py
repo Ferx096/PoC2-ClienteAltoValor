@@ -6,7 +6,11 @@ from pathlib import Path
 load_dotenv()
 
 # COnfiguracipn Azure AI Search
-AZURE_AISEARCH_API_KEY = {"AZURE_AISEARCH_API_KEY": os.getenv("AZURE_AISEARCH_API_KEY")}
+AZURE_AISEARCH_API_KEY = {
+    "AZURE_AISEARCH_ENDPOINT": os.getenv("AZURE_AISEARCH_ENDPOINT"),
+    "AZURE_AISEARCH_API_KEY": os.getenv("AZURE_AISEARCH_API_KEY"),
+    "AZURE_AISEARCH_INDEX_NAME": os.getenv("AZURE_AISEARCH_INDEX_NAME"),
+}
 
 # Configuración de Azure Blob Storage
 AZURE_BLOB_CONFIG = {
@@ -27,23 +31,3 @@ AZURE_CONFIG = {
     "api_version": os.getenv("AZURE_OPENAI_API_VERSION"),
     "embedding_deployment": os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT"),
 }
-
-
-def get_llm():
-    return AzureChatOpenAI(
-        azure_endpoint=AZURE_CONFIG["endpoint"],
-        api_key=AZURE_CONFIG["api_key"],
-        azure_deployment=AZURE_CONFIG["deployment_name"],
-        api_version=AZURE_CONFIG["api_version"],
-        temperature=0.0,
-    )
-
-
-def get_embedding():
-    print(f"[DEBUG] Embedding deployment: {AZURE_CONFIG['embedding_deployment']}")
-    return AzureOpenAIEmbeddings(
-        azure_endpoint=AZURE_CONFIG["endpoint"],
-        api_key=AZURE_CONFIG["api_key"],
-        azure_deployment=AZURE_CONFIG["embedding_deployment"],
-        api_version=AZURE_CONFIG["api_version"],
-    )
