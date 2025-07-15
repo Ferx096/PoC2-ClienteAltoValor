@@ -6,18 +6,14 @@ from azure.storage.blob import BlobServiceClient
 from azure.search.documents import SearchClient
 from azure.core.credentials import AzureKeyCredential
 # import pyodbc  # Comentado por ahora para testing
-from config import AZURE_CONFIG, AZURE_BLOB_CONFIG
+from config import get_openai_client, get_deployment_name, AZURE_BLOB_CONFIG
 
 class SPPAgent:
     """Agente IA para consultas del Sistema Privado de Pensiones usando solo Azure services"""
     
     def __init__(self):
         # Cliente OpenAI
-        self.openai_client = openai.AzureOpenAI(
-            azure_endpoint=AZURE_CONFIG["endpoint"],
-            api_key=AZURE_CONFIG["api_key"],
-            api_version=AZURE_CONFIG["api_version"]
-        )
+        self.openai_client = get_openai_client()
         
         # Cliente Blob Storage
         self.blob_client = BlobServiceClient.from_connection_string(
@@ -56,7 +52,7 @@ class SPPAgent:
         """
         
         response = self.openai_client.chat.completions.create(
-            model=AZURE_CONFIG["deployment_name"],
+            model=get_deployment_name(),
             messages=[
                 {"role": "system", "content": "Eres un clasificador de consultas de datos SPP."},
                 {"role": "user", "content": classification_prompt}
@@ -125,7 +121,7 @@ class SPPAgent:
         """
         
         response = self.openai_client.chat.completions.create(
-            model=AZURE_CONFIG["deployment_name"],
+            model=get_deployment_name(),
             messages=[
                 {"role": "system", "content": self.system_prompt},
                 {"role": "user", "content": context}

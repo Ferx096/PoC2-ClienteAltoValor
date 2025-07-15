@@ -7,18 +7,13 @@ import os
 import json
 import time
 from typing import Dict, List, Any, Optional
-from openai import AzureOpenAI
-from config import AZURE_CONFIG
+from config import get_openai_client, get_deployment_name
 
 class SPPAssistantAgent:
     """Agente SPP usando Azure OpenAI Assistants API - 100% Azure nativo"""
     
     def __init__(self):
-        self.client = AzureOpenAI(
-            azure_endpoint=AZURE_CONFIG["endpoint"],
-            api_key=AZURE_CONFIG["api_key"],
-            api_version=AZURE_CONFIG["api_version"]
-        )
+        self.client = get_openai_client()
         
         self.assistant_id = None
         self.thread_id = None
@@ -169,7 +164,7 @@ ESTILO DE RESPUESTA:
 - Insights relevantes para el sector previsional
 - Formato claro y estructurado""",
             
-            model=AZURE_CONFIG["deployment_name"],
+            model=get_deployment_name(),
             tools=self.functions
         )
         

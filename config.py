@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
+from openai import AzureOpenAI
 from pathlib import Path
 
 load_dotenv()
@@ -47,3 +48,17 @@ def get_embedding():
         azure_deployment=AZURE_CONFIG["embedding_deployment"],
         api_version=AZURE_CONFIG["api_version"],
     )
+
+
+def get_openai_client():
+    """Retorna cliente directo de Azure OpenAI para Assistants API"""
+    return AzureOpenAI(
+        azure_endpoint=AZURE_CONFIG["endpoint"],
+        api_key=AZURE_CONFIG["api_key"],
+        api_version=AZURE_CONFIG["api_version"]
+    )
+
+
+def get_deployment_name():
+    """Retorna el nombre del deployment para usar en Assistants API"""
+    return AZURE_CONFIG["deployment_name"]
