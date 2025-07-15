@@ -1,0 +1,16 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=sbsblob;AccountKey=hNX4+xOtvqbWVh7ljNOuDb40tHCkelOexsEjIG5557+Xo0AenB8xl0ljUc5ybSLECc2lhDlXnxvv+AStWlcJyg==;EndpointSuffix=core.windows.net",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AZURE_OPENAI_ENDPOINT": "https://ia-analytics.cognitiveservices.azure.com/",
+    "AZURE_OPENAI_API_KEY": "EKwkdBVRemJ5RjWCoJMIz83aQWF7hjL2BUW30spK0MEfqLOWArXhJQQJ99BGACYeBjFXJ3w3AAAAACOG4F3u",
+    "AZURE_OPENAI_DEPLOYMENT_NAME": "gpt-4.1",
+    "AZURE_OPENAI_API_VERSION": "2024-12-01-preview",
+    "AZURE_OPENAI_EMBEDDING_DEPLOYMENT": "text-embedding-3-large",
+    "AZURE_BLOB_ACCOUNT_KEY": "hNX4+xOtvqbWVh7ljNOuDb40tHCkelOexsEjIG5557+Xo0AenB8xl0ljUc5ybSLECc2lhDlXnxvv+AStWlcJyg==",
+    "AZURE_BLOB_CONNECTION_STRING": "DefaultEndpointsProtocol=https;AccountName=sbsblob;AccountKey=hNX4+xOtvqbWVh7ljNOuDb40tHCkelOexsEjIG5557+Xo0AenB8xl0ljUc5ybSLECc2lhDlXnxvv+AStWlcJyg==;EndpointSuffix=core.windows.net",
+    "AZURE_BLOB_ACCOUNT_NAME": "sbsblob",
+    "AZURE_BLOB_CONTAINER_NAME": "contenedorsbs2025"
+  }
+}
