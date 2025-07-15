@@ -5,6 +5,9 @@ from pathlib import Path
 
 load_dotenv()
 
+# COnfiguracipn Azure AI Search
+AZURE_AISEARCH_API_KEY = {"AZURE_AISEARCH_API_KEY": os.getenv("AZURE_AISEARCH_API_KEY")}
+
 # Configuración de Azure Blob Storage
 AZURE_BLOB_CONFIG = {
     "AZURE_BLOB_ACCOUNT_KEY": os.getenv("AZURE_BLOB_ACCOUNT_KEY"),
