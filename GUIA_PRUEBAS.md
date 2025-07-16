@@ -77,8 +77,6 @@ curl -X POST "http://localhost:7071/api/chat" \
 ```
 
 
-
-
 ### ¿Qué hace?
 - ✅ Te permite hacer preguntas directamente al agente
 - ✅ Muestra ejemplos de consultas
@@ -97,6 +95,32 @@ curl -X POST "http://localhost:7071/api/chat" \
 🤖 RESPUESTA:
 Según los datos más recientes de rentabilidad de Habitat en el fondo conservador (Tipo 0)...
 ```
+**¿Qué puedes preguntarle al agente?**
+
+#### Consultas sobre Rentabilidad Específica:
+- "¿Cuál es la rentabilidad nominal de Habitat en el fondo conservador?"
+- "Muestra la rentabilidad real de Prima en los últimos 3 años"
+- "¿Cómo está el rendimiento de Integra en fondos tipo 2?"
+
+#### Comparaciones entre AFPs:
+- "Compara la rentabilidad entre Habitat e Integra en el fondo tipo 2"
+- "¿Qué AFP tiene mejor rendimiento en fondos de crecimiento?"
+- "Compara todos los fondos de Profuturo vs Prima"
+
+#### Análisis de Tipos de Fondos:
+- "Explica las diferencias entre los fondos tipo 0 y tipo 3"
+- "¿Qué tipo de fondo recomiendas para una persona de 30 años?"
+- "¿Cuáles son los riesgos de los fondos de crecimiento?"
+
+#### Tendencias Históricas:
+- "¿Cómo ha evolucionado la rentabilidad de los fondos conservadores?"
+- "Muestra las tendencias de rentabilidad por período"
+- "¿Cuál ha sido la mejor AFP históricamente?"
+
+#### Recomendaciones Personalizadas:
+- "Recomienda una estrategia para alguien cerca de jubilarse"
+- "¿Qué diversificación de fondos sugieres?"
+- "¿Conviene cambiar de AFP actualmente?"
 
 
 ## ☁️ Opción 2: Despliegue en Azure (Prodiccion)
