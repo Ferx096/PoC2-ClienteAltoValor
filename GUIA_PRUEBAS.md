@@ -99,7 +99,7 @@ Según los datos más recientes de rentabilidad de Habitat en el fondo conservad
 ```
 
 
-## 🌐☁️ Opción 2: Despliegue en Azure (Prodiccion)
+## 🌐 Opción 2: Despliegue en Azure (Prodiccion)
 
 #### Paso 1: Crear Recursos en Azure
 ```bash
