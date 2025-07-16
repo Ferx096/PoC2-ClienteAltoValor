@@ -11,21 +11,24 @@ from typing import Dict, List, Any, Optional
 from .excel_processor import ExcelProcessor
 import logging
 
+
 class RentabilityDataManager:
     """Gestor centralizado de datos de rentabilidad"""
-    
-    def __init__(self, documents_path: str = "/workspace/PoC2-ClienteAltoValor/documents"):
+
+    def __init__(
+        self, documents_path: str = "/workspace/PoC2-ClienteAltoValor/documents"
+    ):
         self.documents_path = documents_path
         self.processor = ExcelProcessor()
         self.data_cache = {}
         self.load_all_data()
-    
+
     def load_all_data(self):
         """Carga todos los archivos Excel de rentabilidad"""
         excel_files = glob.glob(f"{self.documents_path}/**/*.XLS*", recursive=True)
-        
+
         logging.info(f"Cargando {len(excel_files)} archivos Excel...")
-        
+
         for file_path in excel_files:
             try:
                 result = self.processor.process_local_file(file_path)
@@ -33,42 +36,48 @@ class RentabilityDataManager:
                     self._store_data(result)
                     logging.info(f"Procesado: {os.path.basename(file_path)}")
                 else:
-                    logging.error(f"Error procesando {file_path}: {result.get('error', 'Unknown error')}")
+                    logging.error(
+                        f"Error procesando {file_path}: {result.get('error', 'Unknown error')}"
+                    )
             except Exception as e:
                 logging.error(f"Error cargando {file_path}: {str(e)}")
-        
+
         logging.info(f"Datos cargados para {len(self.data_cache)} archivos")
-    
+
     def _store_data(self, processed_data: Dict):
         """Almacena datos procesados en el cache"""
         metadata = processed_data["metadata"]
         rentability_data = processed_data["rentability_data"]
-        
+
         # Crear clave única para el archivo
         key = f"fund_{metadata.get('fund_type', 0)}_period_{metadata.get('period', 'unknown')}"
-        
+
         self.data_cache[key] = {
             "metadata": metadata,
             "rentability_data": rentability_data,
-            "file_path": metadata["filename"]
+            "file_path": metadata["filename"],
         }
-    
-    def get_rentability_by_afp(self, afp_name: str, fund_type: int = 0, period: str = None) -> Dict:
+
+    def get_rentability_by_afp(
+        self, afp_name: str, fund_type: int = 0, period: str = None
+    ) -> Dict:
         """Obtiene datos de rentabilidad por AFP"""
         afp_name = afp_name.lower()
-        
+
         # Si no se especifica período, usar el más reciente disponible
         if not period:
             available_periods = self.get_available_periods(fund_type)
             period = max(available_periods) if available_periods else "2025-04"
-        
+
         key = f"fund_{fund_type}_period_{period}"
-        
+
         if key not in self.data_cache:
-            return {"error": f"No hay datos para fondo tipo {fund_type} en período {period}"}
-        
+            return {
+                "error": f"No hay datos para fondo tipo {fund_type} en período {period}"
+            }
+
         data = self.data_cache[key]["rentability_data"]
-        
+
         # Buscar datos de la AFP específica
         for afp_data in data.get("afp_data", []):
             if afp_data["afp_name"].lower() == afp_name:
@@ -78,25 +87,27 @@ class RentabilityDataManager:
                     "period": period,
                     "rentability_data": afp_data["rentability_data"],
                     "periods_available": data.get("periods_available", []),
-                    "data_source": f"Archivo oficial SPP - {period}"
+                    "data_source": f"Archivo oficial SPP - {period}",
                 }
-        
+
         return {"error": f"AFP {afp_name} no encontrada en los datos"}
-    
-    def compare_afp_rentability(self, afps: List[str], fund_type: int = 0, period: str = None) -> Dict:
+
+    def compare_afp_rentability(
+        self, afps: List[str], fund_type: int = 0, period: str = None
+    ) -> Dict:
         """Compara rentabilidad entre múltiples AFPs"""
         if not period:
             available_periods = self.get_available_periods(fund_type)
             period = max(available_periods) if available_periods else "2025-04"
-        
+
         comparison = {}
         rankings = {}
-        
+
         for afp in afps:
             afp_data = self.get_rentability_by_afp(afp, fund_type, period)
             if "error" not in afp_data:
                 comparison[afp] = afp_data["rentability_data"]
-        
+
         # Calcular rankings para diferentes períodos
         if comparison:
             sample_data = next(iter(comparison.values()))
@@ -108,120 +119,124 @@ class RentabilityDataManager:
                             period_ranking.append((afp, data[period_key]))
                     period_ranking.sort(key=lambda x: x[1], reverse=True)
                     rankings[period_key] = period_ranking
-        
+
         return {
             "comparison": comparison,
             "fund_type": fund_type,
             "period": period,
             "rankings": rankings,
-            "analysis": f"Comparación de rentabilidad para fondo tipo {fund_type}"
+            "analysis": f"Comparación de rentabilidad para fondo tipo {fund_type}",
         }
-    
+
     def get_available_periods(self, fund_type: int = None) -> List[str]:
         """Obtiene períodos disponibles"""
         periods = set()
-        
+
         for key, data in self.data_cache.items():
             if fund_type is None or f"fund_{fund_type}" in key:
                 period = data["metadata"].get("period")
                 if period:
                     periods.add(period)
-        
+
         return sorted(list(periods))
-    
+
     def get_available_fund_types(self) -> List[int]:
         """Obtiene tipos de fondos disponibles"""
         fund_types = set()
-        
+
         for key, data in self.data_cache.items():
             fund_type = data["metadata"].get("fund_type")
             if fund_type is not None:
                 fund_types.add(fund_type)
-        
+
         return sorted(list(fund_types))
-    
+
     def get_all_afps(self) -> List[str]:
         """Obtiene lista de todas las AFPs disponibles"""
         afps = set()
-        
+
         for data in self.data_cache.values():
             for afp_data in data["rentability_data"].get("afp_data", []):
                 afps.add(afp_data["afp_name"])
-        
+
         return sorted(list(afps))
-    
-    def analyze_fund_performance(self, fund_types: List[int], afp_filter: str = "all") -> Dict:
+
+    def analyze_fund_performance(
+        self, fund_types: List[int], afp_filter: str = "all"
+    ) -> Dict:
         """Analiza rendimiento de diferentes tipos de fondos"""
         analysis = {}
-        
+
         # Características generales de cada tipo de fondo
         fund_characteristics = {
             0: {
                 "name": "Conservador",
                 "risk_level": "Bajo",
                 "description": "Fondo de menor riesgo, principalmente renta fija",
-                "target_profile": "Personas próximas a jubilarse o conservadoras"
+                "target_profile": "Personas próximas a jubilarse o conservadoras",
             },
             1: {
-                "name": "Mixto Conservador", 
+                "name": "Mixto Conservador",
                 "risk_level": "Bajo-Medio",
                 "description": "Combinación de renta fija y variable con predominio de renta fija",
-                "target_profile": "Personas con perfil moderadamente conservador"
+                "target_profile": "Personas con perfil moderadamente conservador",
             },
             2: {
                 "name": "Mixto",
                 "risk_level": "Medio",
                 "description": "Balance entre renta fija y variable",
-                "target_profile": "Personas con perfil de riesgo moderado"
+                "target_profile": "Personas con perfil de riesgo moderado",
             },
             3: {
                 "name": "Crecimiento",
-                "risk_level": "Alto", 
+                "risk_level": "Alto",
                 "description": "Mayor proporción en renta variable para crecimiento",
-                "target_profile": "Personas jóvenes con horizonte de inversión largo"
-            }
+                "target_profile": "Personas jóvenes con horizonte de inversión largo",
+            },
         }
-        
+
         for fund_type in fund_types:
             if fund_type in fund_characteristics:
                 # Obtener datos reales de rentabilidad promedio
-                avg_rentability = self._calculate_average_rentability(fund_type, afp_filter)
-                
+                avg_rentability = self._calculate_average_rentability(
+                    fund_type, afp_filter
+                )
+
                 analysis[f"fund_type_{fund_type}"] = {
                     **fund_characteristics[fund_type],
                     "average_rentability": avg_rentability,
-                    "data_available": len(self.get_available_periods(fund_type)) > 0
+                    "data_available": len(self.get_available_periods(fund_type)) > 0,
                 }
-        
+
         return {
             "fund_analysis": analysis,
             "recommendation": self._generate_fund_recommendation(fund_types),
-            "data_source": "Análisis basado en datos oficiales SPP"
+            "data_source": "Análisis basado en datos oficiales SPP",
         }
-    
+
     def _calculate_average_rentability(self, fund_type: int, afp_filter: str) -> Dict:
         """Calcula rentabilidad promedio para un tipo de fondo"""
         periods = self.get_available_periods(fund_type)
         if not periods:
             return {"error": "No hay datos disponibles"}
-        
+
         # Usar el período más reciente
         latest_period = max(periods)
         key = f"fund_{fund_type}_period_{latest_period}"
-        
+
         if key not in self.data_cache:
             return {"error": "Datos no encontrados"}
-        
+
         data = self.data_cache[key]["rentability_data"]
         afp_data = data.get("afp_data", [])
-        
+
         if not afp_data:
             return {"error": "No hay datos de AFPs"}
-        
+
         # Calcular promedios
         totals = {}
         count = 0
-        
+
         for afp in afp_data:
             if afp_filter == "all" or afp["afp_name"].lower() == afp_filter.lower():
                 rentability = afp["rentability_data"]
@@ -230,18 +245,14 @@ class RentabilityDataManager:
                         totals[key] = 0
                     totals[key] += value
                 count += 1
-        
+
         if count == 0:
             return {"error": "No se encontraron datos para el filtro especificado"}
-        
+
         averages = {key: round(value / count, 4) for key, value in totals.items()}
-        
-        return {
-            "averages": averages,
-            "afps_included": count,
-            "period": latest_period
-        }
-    
+
+        return {"averages": averages, "afps_included": count, "period": latest_period}
+
     def _generate_fund_recommendation(self, fund_types: List[int]) -> str:
         """Genera recomendación basada en tipos de fondos analizados"""
         if len(fund_types) == 1:
@@ -250,12 +261,15 @@ class RentabilityDataManager:
                 0: "Ideal para personas conservadoras o próximas a jubilarse que priorizan la preservación del capital.",
                 1: "Adecuado para personas con perfil moderadamente conservador que buscan un balance entre seguridad y crecimiento.",
                 2: "Recomendado para personas con perfil de riesgo moderado y horizonte de inversión medio.",
-                3: "Apropiado para personas jóvenes con horizonte de inversión largo que pueden asumir mayor volatilidad."
+                3: "Apropiado para personas jóvenes con horizonte de inversión largo que pueden asumir mayor volatilidad.",
             }
-            return recommendations.get(fund_type, "Consulte con un asesor financiero para determinar el fondo más adecuado.")
+            return recommendations.get(
+                fund_type,
+                "Consulte con un asesor financiero para determinar el fondo más adecuado.",
+            )
         else:
             return "La diversificación entre diferentes tipos de fondos puede ayudar a balancear riesgo y rentabilidad según su perfil de inversión."
-    
+
     def get_summary_statistics(self) -> Dict:
         """Obtiene estadísticas resumen de todos los datos"""
         return {
@@ -264,13 +278,15 @@ class RentabilityDataManager:
             "available_periods": self.get_available_periods(),
             "available_afps": self.get_all_afps(),
             "data_coverage": {
-                f"fund_type_{ft}": len(self.get_available_periods(ft)) 
+                f"fund_type_{ft}": len(self.get_available_periods(ft))
                 for ft in self.get_available_fund_types()
-            }
+            },
         }
+
 
 # Instancia global del gestor de datos
 data_manager = None
+
 
 def get_data_manager() -> RentabilityDataManager:
     """Obtiene instancia singleton del gestor de datos"""

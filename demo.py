@@ -27,18 +27,18 @@ def demo_system_overview():
     
     print("""
 🏦 DATOS PROCESADOS:
-   • 20 archivos Excel de rentabilidad oficial
-   • 4 tipos de fondos (0: Conservador, 1: Mixto Conservador, 2: Mixto, 3: Crecimiento)
-   • 4 AFPs (Habitat, Integra, Prima, Profuturo)
-   • 5 períodos (Enero-Mayo 2025)
-   • Rentabilidad nominal y real por horizonte temporal
+• 20 archivos Excel de rentabilidad oficial
+• 4 tipos de fondos (0: Conservador, 1: Mixto Conservador, 2: Mixto, 3: Crecimiento)
+• 4 AFPs (Habitat, Integra, Prima, Profuturo)
+• 5 períodos (Enero-Mayo 2025)
+• Rentabilidad nominal y real por horizonte temporal
 
 🤖 CAPACIDADES DEL AGENTE:
-   • Consultas de rentabilidad por AFP
-   • Comparaciones entre AFPs
-   • Análisis de tipos de fondos
-   • Tendencias históricas
-   • Recomendaciones personalizadas
+• Consultas de rentabilidad por AFP
+• Comparaciones entre AFPs
+• Análisis de tipos de fondos
+• Tendencias históricas
+• Recomendaciones personalizadas
     """)
 
 def demo_data_loading():
