@@ -83,18 +83,6 @@ curl -X POST "http://localhost:7071/api/chat" \
 - ✅ Mide tiempos de respuesta
 - ✅ Maneja errores de forma amigable
 
-### Ejemplo de uso:
-```
-🤔 Tu consulta: ¿Cuál es la rentabilidad de Habitat en el fondo conservador?
-
-🤖 Procesando consulta...
-
-📝 CONSULTA: ¿Cuál es la rentabilidad de Habitat en el fondo conservador?
-⏱️  TIEMPO: 3.45 segundos
---------------------------------------------------
-🤖 RESPUESTA:
-Según los datos más recientes de rentabilidad de Habitat en el fondo conservador (Tipo 0)...
-```
 **¿Qué puedes preguntarle al agente?**
 
 #### Consultas sobre Rentabilidad Específica:
@@ -121,6 +109,20 @@ Según los datos más recientes de rentabilidad de Habitat en el fondo conservad
 - "Recomienda una estrategia para alguien cerca de jubilarse"
 - "¿Qué diversificación de fondos sugieres?"
 - "¿Conviene cambiar de AFP actualmente?"
+
+
+### Ejemplo de uso:
+```
+🤔 Tu consulta: ¿Cuál es la rentabilidad de Habitat en el fondo conservador?
+
+🤖 Procesando consulta...
+
+📝 CONSULTA: ¿Cuál es la rentabilidad de Habitat en el fondo conservador?
+⏱️  TIEMPO: 3.45 segundos
+--------------------------------------------------
+🤖 RESPUESTA:
+Según los datos más recientes de rentabilidad de Habitat en el fondo conservador (Tipo 0)...
+```
 
 
 ## ☁️ Opción 2: Despliegue en Azure (Prodiccion)
