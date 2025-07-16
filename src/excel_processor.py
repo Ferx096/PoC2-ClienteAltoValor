@@ -1,10 +1,10 @@
 import pandas as pd
 import json
 import re
+import os
 from typing import Dict, List, Any, Optional
 from azure.storage.blob import BlobServiceClient
 import sys
-import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import AZURE_BLOB_CONFIG
 import logging
@@ -13,14 +13,19 @@ class ExcelProcessor:
     """Procesador de archivos Excel de rentabilidad de fondos de pensiones"""
     
     def __init__(self):
-        self.blob_client = BlobServiceClient.from_connection_string(
-            conn_str=AZURE_BLOB_CONFIG["AZURE_BLOB_CONNECTION_STRING"]
-        )
+        # Solo inicializar blob_client si tenemos credenciales
+        connection_string = AZURE_BLOB_CONFIG.get("AZURE_BLOB_CONNECTION_STRING")
+        if connection_string:
+            try:
+                self.blob_client = BlobServiceClient.from_connection_string(conn_str=connection_string)
+            except Exception as e:
+                logging.warning(f"Error inicializando blob client: {e}")
+                self.blob_client = None
+        else:
+            self.blob_client = None
         
-    def process_excel_stream(self, blob_stream) -> Dict[str, Any]:
+    def process_excel_stream(self, blob_stream, blob_name: str) -> Dict[str, Any]:
         """Procesa un archivo Excel de rentabilidad desde un stream de Azure Blob"""
-        
-        blob_name = getattr(blob_stream, 'name', 'unknown_blob')
         
         try:
             # Leer el archivo Excel desde el stream

@@ -6,11 +6,11 @@ Carga y gestiona todos los archivos Excel de rentabilidad desde Azure Blob Stora
 import pandas as pd
 import json
 import os
+import glob
 from typing import Dict, List, Any, Optional
 from .excel_processor import ExcelProcessor
 from azure.storage.blob import BlobServiceClient
 import sys
-import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import AZURE_BLOB_CONFIG
 import logging
@@ -21,14 +21,30 @@ class RentabilityDataManager:
     def __init__(self):
         self.processor = ExcelProcessor()
         self.data_cache = {}
-        self.blob_client = BlobServiceClient.from_connection_string(
-            conn_str=AZURE_BLOB_CONFIG["AZURE_BLOB_CONNECTION_STRING"]
-        )
-        self.container_name = AZURE_BLOB_CONFIG["AZURE_BLOB_CONTAINER_NAME"]
+        
+        # Configurar para usar Azure Blob Storage obligatoriamente
+        connection_string = AZURE_BLOB_CONFIG.get("AZURE_BLOB_CONNECTION_STRING")
+        container_name = AZURE_BLOB_CONFIG.get("AZURE_BLOB_CONTAINER_NAME")
+        
+        if not connection_string or not container_name:
+            raise Exception("Las credenciales de Azure Blob Storage son obligatorias. Configure AZURE_BLOB_CONNECTION_STRING y AZURE_BLOB_CONTAINER_NAME en las variables de entorno.")
+        
+        try:
+            self.blob_client = BlobServiceClient.from_connection_string(conn_str=connection_string)
+            self.container_name = container_name
+            self.use_blob_storage = True
+            logging.info("Configurado para usar Azure Blob Storage")
+        except Exception as e:
+            raise Exception(f"Error configurando blob storage: {e}. Verifique las credenciales de Azure.")
+            
         self.load_all_data()
     
     def load_all_data(self):
         """Carga todos los archivos Excel de rentabilidad desde Azure Blob Storage"""
+        self._load_from_blob_storage()
+    
+    def _load_from_blob_storage(self):
+        """Carga archivos desde Azure Blob Storage"""
         try:
             container_client = self.blob_client.get_container_client(self.container_name)
             
@@ -47,7 +63,7 @@ class RentabilityDataManager:
                     blob_stream = blob_client.download_blob()
                     
                     # Procesar el archivo Excel desde el stream
-                    result = self.processor.process_excel_stream(blob_stream)
+                    result = self.processor.process_excel_stream(blob_stream, blob.name)
                     
                     if result["status"] == "success":
                         self._store_data(result)
@@ -62,28 +78,9 @@ class RentabilityDataManager:
             
         except Exception as e:
             logging.error(f"Error conectando a blob storage: {str(e)}")
-            # Fallback: intentar cargar datos locales si existe la carpeta
-            self._load_local_fallback()
+            raise Exception(f"No se pudo conectar a blob storage: {str(e)}")
     
-    def _load_local_fallback(self):
-        """Método de fallback para cargar datos locales si blob storage no está disponible"""
-        import glob
-        local_documents_path = "/workspace/PoC2-ClienteAltoValor/documents"
-        
-        if os.path.exists(local_documents_path):
-            logging.info("Usando fallback: cargando archivos locales...")
-            excel_files = glob.glob(f"{local_documents_path}/**/*.XLS*", recursive=True)
-            
-            for file_path in excel_files:
-                try:
-                    result = self.processor.process_local_file(file_path)
-                    if result["status"] == "success":
-                        self._store_data(result)
-                        logging.info(f"Procesado (local): {os.path.basename(file_path)}")
-                except Exception as e:
-                    logging.error(f"Error cargando archivo local {file_path}: {str(e)}")
-        else:
-            logging.warning("No se pudo cargar datos ni desde blob storage ni localmente")
+
     
     def _store_data(self, processed_data: Dict):
         """Almacena datos procesados en el cache"""
@@ -108,7 +105,8 @@ class RentabilityDataManager:
             available_periods = self.get_available_periods(fund_type)
             if not available_periods:
                 return {"error": f"No hay datos disponibles para el fondo tipo {fund_type}"}
-            period = max(available_periods)
+            # Ordenar períodos y tomar el más reciente (sin asumir un máximo fijo)
+            period = sorted(available_periods, reverse=True)[0]
         
         key = f"fund_{fund_type}_period_{period}"
         
@@ -137,7 +135,8 @@ class RentabilityDataManager:
             available_periods = self.get_available_periods(fund_type)
             if not available_periods:
                 return {"error": f"No hay datos disponibles para el fondo tipo {fund_type}"}
-            period = max(available_periods)
+            # Ordenar períodos y tomar el más reciente (sin asumir un máximo fijo)
+            period = sorted(available_periods, reverse=True)[0]
         
         comparison = {}
         rankings = {}
@@ -255,8 +254,8 @@ class RentabilityDataManager:
         if not periods:
             return {"error": "No hay datos disponibles"}
         
-        # Usar el período más reciente
-        latest_period = max(periods)
+        # Usar el período más reciente (sin asumir un máximo fijo)
+        latest_period = sorted(periods, reverse=True)[0]
         key = f"fund_{fund_type}_period_{latest_period}"
         
         if key not in self.data_cache:
@@ -317,7 +316,7 @@ class RentabilityDataManager:
                 f"fund_type_{ft}": len(self.get_available_periods(ft)) 
                 for ft in self.get_available_fund_types()
             },
-            "data_source": "Azure Blob Storage" if self.blob_client else "Local Files"
+            "data_source": "Azure Blob Storage"
         }
     
     def refresh_data(self):
@@ -330,7 +329,7 @@ class RentabilityDataManager:
     def get_latest_period_for_fund(self, fund_type: int) -> str:
         """Obtiene el período más reciente disponible para un tipo de fondo específico"""
         periods = self.get_available_periods(fund_type)
-        return max(periods) if periods else None
+        return sorted(periods, reverse=True)[0] if periods else None
     
     def get_data_freshness_info(self) -> Dict:
         """Obtiene información sobre la frescura de los datos"""
