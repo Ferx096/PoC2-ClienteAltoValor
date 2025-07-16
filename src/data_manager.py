@@ -1,43 +1,89 @@
 #!/usr/bin/env python3
 """
 Gestor de datos de rentabilidad de fondos SPP
-Carga y gestiona todos los archivos Excel de rentabilidad
+Carga y gestiona todos los archivos Excel de rentabilidad desde Azure Blob Storage
 """
 import pandas as pd
 import json
-import glob
 import os
 from typing import Dict, List, Any, Optional
 from .excel_processor import ExcelProcessor
+from azure.storage.blob import BlobServiceClient
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import AZURE_BLOB_CONFIG
 import logging
 
 class RentabilityDataManager:
     """Gestor centralizado de datos de rentabilidad"""
     
-    def __init__(self, documents_path: str = "/workspace/PoC2-ClienteAltoValor/documents"):
-        self.documents_path = documents_path
+    def __init__(self):
         self.processor = ExcelProcessor()
         self.data_cache = {}
+        self.blob_client = BlobServiceClient.from_connection_string(
+            conn_str=AZURE_BLOB_CONFIG["AZURE_BLOB_CONNECTION_STRING"]
+        )
+        self.container_name = AZURE_BLOB_CONFIG["AZURE_BLOB_CONTAINER_NAME"]
         self.load_all_data()
     
     def load_all_data(self):
-        """Carga todos los archivos Excel de rentabilidad"""
-        excel_files = glob.glob(f"{self.documents_path}/**/*.XLS*", recursive=True)
+        """Carga todos los archivos Excel de rentabilidad desde Azure Blob Storage"""
+        try:
+            container_client = self.blob_client.get_container_client(self.container_name)
+            
+            # Listar todos los blobs que son archivos Excel
+            excel_blobs = []
+            for blob in container_client.list_blobs():
+                if blob.name.upper().endswith(('.XLS', '.XLSX')):
+                    excel_blobs.append(blob)
+            
+            logging.info(f"Encontrados {len(excel_blobs)} archivos Excel en blob storage...")
+            
+            for blob in excel_blobs:
+                try:
+                    # Descargar el blob como stream
+                    blob_client = container_client.get_blob_client(blob.name)
+                    blob_stream = blob_client.download_blob()
+                    
+                    # Procesar el archivo Excel desde el stream
+                    result = self.processor.process_excel_stream(blob_stream)
+                    
+                    if result["status"] == "success":
+                        self._store_data(result)
+                        logging.info(f"Procesado desde blob storage: {blob.name}")
+                    else:
+                        logging.error(f"Error procesando blob {blob.name}: {result.get('error', 'Unknown error')}")
+                        
+                except Exception as e:
+                    logging.error(f"Error cargando blob {blob.name}: {str(e)}")
+            
+            logging.info(f"Datos cargados para {len(self.data_cache)} archivos desde blob storage")
+            
+        except Exception as e:
+            logging.error(f"Error conectando a blob storage: {str(e)}")
+            # Fallback: intentar cargar datos locales si existe la carpeta
+            self._load_local_fallback()
+    
+    def _load_local_fallback(self):
+        """Método de fallback para cargar datos locales si blob storage no está disponible"""
+        import glob
+        local_documents_path = "/workspace/PoC2-ClienteAltoValor/documents"
         
-        logging.info(f"Cargando {len(excel_files)} archivos Excel...")
-        
-        for file_path in excel_files:
-            try:
-                result = self.processor.process_local_file(file_path)
-                if result["status"] == "success":
-                    self._store_data(result)
-                    logging.info(f"Procesado: {os.path.basename(file_path)}")
-                else:
-                    logging.error(f"Error procesando {file_path}: {result.get('error', 'Unknown error')}")
-            except Exception as e:
-                logging.error(f"Error cargando {file_path}: {str(e)}")
-        
-        logging.info(f"Datos cargados para {len(self.data_cache)} archivos")
+        if os.path.exists(local_documents_path):
+            logging.info("Usando fallback: cargando archivos locales...")
+            excel_files = glob.glob(f"{local_documents_path}/**/*.XLS*", recursive=True)
+            
+            for file_path in excel_files:
+                try:
+                    result = self.processor.process_local_file(file_path)
+                    if result["status"] == "success":
+                        self._store_data(result)
+                        logging.info(f"Procesado (local): {os.path.basename(file_path)}")
+                except Exception as e:
+                    logging.error(f"Error cargando archivo local {file_path}: {str(e)}")
+        else:
+            logging.warning("No se pudo cargar datos ni desde blob storage ni localmente")
     
     def _store_data(self, processed_data: Dict):
         """Almacena datos procesados en el cache"""
@@ -60,7 +106,9 @@ class RentabilityDataManager:
         # Si no se especifica período, usar el más reciente disponible
         if not period:
             available_periods = self.get_available_periods(fund_type)
-            period = max(available_periods) if available_periods else "2025-04"
+            if not available_periods:
+                return {"error": f"No hay datos disponibles para el fondo tipo {fund_type}"}
+            period = max(available_periods)
         
         key = f"fund_{fund_type}_period_{period}"
         
@@ -87,7 +135,9 @@ class RentabilityDataManager:
         """Compara rentabilidad entre múltiples AFPs"""
         if not period:
             available_periods = self.get_available_periods(fund_type)
-            period = max(available_periods) if available_periods else "2025-04"
+            if not available_periods:
+                return {"error": f"No hay datos disponibles para el fondo tipo {fund_type}"}
+            period = max(available_periods)
         
         comparison = {}
         rankings = {}
@@ -266,7 +316,38 @@ class RentabilityDataManager:
             "data_coverage": {
                 f"fund_type_{ft}": len(self.get_available_periods(ft)) 
                 for ft in self.get_available_fund_types()
+            },
+            "data_source": "Azure Blob Storage" if self.blob_client else "Local Files"
+        }
+    
+    def refresh_data(self):
+        """Refresca los datos desde blob storage"""
+        logging.info("Refrescando datos desde blob storage...")
+        self.data_cache.clear()
+        self.load_all_data()
+        logging.info(f"Datos refrescados. {len(self.data_cache)} archivos cargados.")
+    
+    def get_latest_period_for_fund(self, fund_type: int) -> str:
+        """Obtiene el período más reciente disponible para un tipo de fondo específico"""
+        periods = self.get_available_periods(fund_type)
+        return max(periods) if periods else None
+    
+    def get_data_freshness_info(self) -> Dict:
+        """Obtiene información sobre la frescura de los datos"""
+        fund_types = self.get_available_fund_types()
+        freshness_info = {}
+        
+        for fund_type in fund_types:
+            latest_period = self.get_latest_period_for_fund(fund_type)
+            freshness_info[f"fund_type_{fund_type}"] = {
+                "latest_period": latest_period,
+                "total_periods": len(self.get_available_periods(fund_type))
             }
+        
+        return {
+            "fund_freshness": freshness_info,
+            "total_cached_files": len(self.data_cache),
+            "recommendation": "Los datos se actualizan automáticamente desde blob storage. Use refresh_data() para forzar actualización."
         }
 
 # Instancia global del gestor de datos

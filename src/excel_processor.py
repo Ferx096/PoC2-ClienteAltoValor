@@ -3,6 +3,9 @@ import json
 import re
 from typing import Dict, List, Any, Optional
 from azure.storage.blob import BlobServiceClient
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import AZURE_BLOB_CONFIG
 import logging
 
@@ -17,23 +20,26 @@ class ExcelProcessor:
     def process_excel_stream(self, blob_stream) -> Dict[str, Any]:
         """Procesa un archivo Excel de rentabilidad desde un stream de Azure Blob"""
         
+        blob_name = getattr(blob_stream, 'name', 'unknown_blob')
+        
         try:
-            # Leer el archivo Excel
-            df = pd.read_excel(blob_stream, header=None)
+            # Leer el archivo Excel desde el stream
+            blob_data = blob_stream.readall()
+            df = pd.read_excel(blob_data, header=None)
             
             result = {
-                "filename": blob_stream.name,
+                "filename": blob_name,
                 "status": "success",
                 "metadata": {},
                 "rentability_data": {}
             }
             
             # Extraer datos de rentabilidad
-            rentability_data = self._extract_rentability_data(df, blob_stream.name)
+            rentability_data = self._extract_rentability_data(df, blob_name)
             result["rentability_data"] = rentability_data
             
             # Extraer metadatos del archivo
-            result["metadata"] = self._extract_file_metadata(blob_stream.name)
+            result["metadata"] = self._extract_file_metadata(blob_name)
             
             # TODO: Guardar en Azure SQL Database
             # self._save_to_sql(rentability_data)
@@ -44,9 +50,9 @@ class ExcelProcessor:
             return result
             
         except Exception as e:
-            logging.error(f"Error procesando Excel: {str(e)}")
+            logging.error(f"Error procesando Excel desde blob storage: {str(e)}")
             return {
-                "filename": blob_stream.name,
+                "filename": blob_name,
                 "status": "error",
                 "error": str(e)
             }
@@ -78,23 +84,27 @@ class ExcelProcessor:
                                 extracted["fund_type"] = int(type_match.group(1))
                                 break
             
-            # Extraer período del nombre del archivo
-            period_match = re.search(r'(\w{2})2025', filename)
+            # Extraer período del nombre del archivo (más dinámico para cualquier año)
+            period_match = re.search(r'(\w{2})(\d{4})', filename)
             if period_match:
                 month_abbr = period_match.group(1)
+                year = period_match.group(2)
                 month_map = {
                     'en': '01', 'fe': '02', 'ma': '03', 'ab': '04', 
                     'my': '05', 'jn': '06', 'jl': '07', 'ag': '08',
                     'se': '09', 'oc': '10', 'no': '11', 'di': '12'
                 }
-                extracted["period"] = f"2025-{month_map.get(month_abbr, '01')}"
+                extracted["period"] = f"{year}-{month_map.get(month_abbr, '01')}"
             
-            # Extraer períodos disponibles de las columnas
+            # Extraer períodos disponibles de las columnas (más dinámico)
             periods = []
             for idx in range(4, 7):  # Filas donde están los períodos
                 for col in range(df.shape[1]):
                     cell_value = str(df.iloc[idx, col])
-                    if "2025" in cell_value and "/" in cell_value:
+                    # Buscar patrones de fecha más generales
+                    if re.search(r'\d{4}', cell_value) and "/" in cell_value:
+                        periods.append(cell_value)
+                    elif re.search(r'\d{2}/\d{4}', cell_value):
                         periods.append(cell_value)
             extracted["periods_available"] = list(set(periods))
             
@@ -159,17 +169,18 @@ class ExcelProcessor:
         if fund_match:
             metadata["fund_type"] = int(fund_match.group(1))
         
-        # Extraer período del nombre del archivo
-        period_match = re.search(r'(\w{2})2025', filename)
+        # Extraer período del nombre del archivo (más dinámico)
+        period_match = re.search(r'(\w{2})(\d{4})', filename)
         if period_match:
             month_abbr = period_match.group(1)
+            year = int(period_match.group(2))
             month_map = {
                 'en': '01', 'fe': '02', 'ma': '03', 'ab': '04', 
                 'my': '05', 'jn': '06', 'jl': '07', 'ag': '08',
                 'se': '09', 'oc': '10', 'no': '11', 'di': '12'
             }
-            metadata["period"] = f"2025-{month_map.get(month_abbr, '01')}"
-            metadata["year"] = 2025
+            metadata["period"] = f"{year}-{month_map.get(month_abbr, '01')}"
+            metadata["year"] = year
             metadata["month"] = month_map.get(month_abbr, '01')
         
         return metadata
