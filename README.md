@@ -1,4 +1,4 @@
-# PoC2 - AGENTE DE ANALISIS DE RENTABILIDAD SPP
+# **PoC2 - AGENTE DE ANALISIS DE RENTABILIDAD SPP**
 
 Sistema inteligente para análisis de rentabilidad de fondos del Sistema Privado de Pensiones (SPP) de Perú, utilizando Azure OpenAI Assistants API y procesamiento automatizado de archivos Excel.
 
