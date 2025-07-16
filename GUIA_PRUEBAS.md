@@ -1,4 +1,4 @@
-# 🧪 Guía Completa de Pruebas - Agente SPP
+# **GUIA COMPLETA DE PRUEBAS - AGENTE SPP**
 
 Esta guía te explica paso a paso cómo probar tu agente de análisis de rentabilidad SPP.
 
@@ -206,7 +206,7 @@ loadSPPWidget('mi-contenedor');
 | **Widget Web** | Baja | Gratis | 5 min | Integración web |
 
 
-# 🎯 Próximos Pasos Recomendados
+## 🎯 Próximos Pasos Recomendados
 
 1. **Probar localmente**: `python test_agent_interactive.py`
 2. **Configurar .env** con tus credenciales de Azure OpenAI
