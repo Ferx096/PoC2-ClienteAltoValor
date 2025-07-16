@@ -99,7 +99,7 @@ Según los datos más recientes de rentabilidad de Habitat en el fondo conservad
 ```
 
 
-## 🌐 Opción 2: Despliegue en Azure (Prodiccion)
+## ☁️ Opción 2: Despliegue en Azure (Prodiccion)
 
 #### Paso 1: Crear Recursos en Azure
 ```bash
@@ -132,7 +132,7 @@ func azure functionapp publish spp-agent-app
 ```
 
 
-## 4. 🌐 Widget Embebido para Páginas Web
+## 3. 🌐 Widget Embebido para Páginas Web
 
 ### ✅ SÍ, puedes generar un código embebido para insertar en cualquier página web
 
