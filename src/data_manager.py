@@ -2,6 +2,7 @@
 """
 Gestor de datos de rentabilidad de fondos SPP
 Carga y gestiona todos los archivos Excel de rentabilidad desde Azure Blob Storage
+Integra Azure AI Search y Azure SQL para consultas avanzadas
 """
 import pandas as pd
 import json
@@ -10,9 +11,11 @@ import glob
 from typing import Dict, List, Any, Optional
 from .excel_processor import ExcelProcessor
 from azure.storage.blob import BlobServiceClient
+from azure.search.documents import SearchClient
+from azure.core.credentials import AzureKeyCredential
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import AZURE_BLOB_CONFIG
+from config import AZURE_BLOB_CONFIG, AZURE_AISEARCH_API_KEY, AZURE_SQL_CONFIG
 import logging
 
 class RentabilityDataManager:
@@ -22,7 +25,7 @@ class RentabilityDataManager:
         self.processor = ExcelProcessor()
         self.data_cache = {}
         
-        # Configurar para usar Azure Blob Storage obligatoriamente
+        # Configurar para usar Azure Blob Storage 
         connection_string = AZURE_BLOB_CONFIG.get("AZURE_BLOB_CONNECTION_STRING")
         container_name = AZURE_BLOB_CONFIG.get("AZURE_BLOB_CONTAINER_NAME")
         
@@ -36,7 +39,34 @@ class RentabilityDataManager:
             logging.info("Configurado para usar Azure Blob Storage")
         except Exception as e:
             raise Exception(f"Error configurando blob storage: {e}. Verifique las credenciales de Azure.")
-            
+
+        # Configurar Azure AI Search
+        self.search_client = None
+        try:
+            endpoint = AZURE_AISEARCH_API_KEY.get("AZURE_AISEARCH_ENDPOINT")
+            api_key = AZURE_AISEARCH_API_KEY.get("AZURE_AISEARCH_API_KEY")
+            index_name = AZURE_AISEARCH_API_KEY.get("AZURE_AISEARCH_INDEX_NAME")
+
+            if all([endpoint, api_key, index_name]):
+                self.search_client = SearchClient(
+                    endpoint=endpoint,
+                    index_name=index_name,
+                    credential=AzureKeyCredential(api_key)
+                )
+                logging.info("Azure AI Search configurado correctamente")
+            else:
+                logging.warning("Azure AI Search no configurado completamente")
+        except Exception as e:
+            logging.error(f"Error configurando Azure AI Search: {e}")
+
+        # Configurar Azure SQL
+        self.sql_connection_string = AZURE_SQL_CONFIG.get("AZURE_SQL_CONNECTION_STRING")
+        if self.sql_connection_string:
+            self.sql_connection_string += "Database=sbsbdsql;"
+            logging.info("Azure SQL configurado correctamente")
+        else:
+            logging.warning("Azure SQL no configurado")
+
         self.load_all_data()
     
     def load_all_data(self):
@@ -97,10 +127,15 @@ class RentabilityDataManager:
         }
     
     def get_rentability_by_afp(self, afp_name: str, fund_type: int = 0, period: str = None) -> Dict:
-        """Obtiene datos de rentabilidad por AFP"""
+        """Obtiene datos de rentabilidad por AFP- Prioriza Azure SQL, luego cache""""
         afp_name = afp_name.lower()
         
-        # Si no se especifica período, usar el más reciente disponible
+        # Intentar obtener desde Azure SQL primero
+        sql_result = self._get_rentability_from_sql(afp_name, fund_type, period)
+        if sql_result and "error" not in sql_result:
+            return sql_result
+
+        # Fallback al cache loca
         if not period:
             available_periods = self.get_available_periods(fund_type)
             if not available_periods:
@@ -348,6 +383,145 @@ class RentabilityDataManager:
             "total_cached_files": len(self.data_cache),
             "recommendation": "Los datos se actualizan automáticamente desde blob storage. Use refresh_data() para forzar actualización."
         }
+
+    def _get_rentability_from_sql(self, afp_name: str, fund_type: int, period: str = None) -> Dict:
+        """Obtiene datos de rentabilidad desde Azure SQL Database"""
+        if not self.sql_connection_string:
+            return {"error": "Azure SQL no configurado"}
+
+        try:
+            import pyodbc
+
+            conn = pyodbc.connect(self.sql_connection_string)
+            cursor = conn.cursor()
+
+            # Construir query
+            query = """
+                SELECT period_key, rentability_value, rentability_type
+                FROM rentability_data
+                WHERE LOWER(afp_name) = ? AND fund_type = ?
+            """
+            params = [afp_name.lower(), fund_type]
+
+            if period:
+                query += " AND period = ?"
+                params.append(period)
+            else:
+                # Obtener el período más reciente
+                query += " AND period = (SELECT MAX(period) FROM rentability_data WHERE LOWER(afp_name) = ? AND fund_type = ?)"
+                params.extend([afp_name.lower(), fund_type])
+
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+
+            if not rows:
+                conn.close()
+                return {"error": f"No hay datos en SQL para {afp_name} fondo tipo {fund_type}"}
+
+            # Procesar resultados
+            rentability_data = {}
+            actual_period = None
+
+            for row in rows:
+                period_key, value, rent_type = row
+                rentability_data[period_key] = float(value)
+
+                # Obtener el período actual
+                if not actual_period:
+                    period_query = "SELECT DISTINCT period FROM rentability_data WHERE LOWER(afp_name) = ? AND fund_type = ? AND period_key = ?"
+                    cursor.execute(period_query, [afp_name.lower(), fund_type, period_key])
+                    period_result = cursor.fetchone()
+                    if period_result:
+                        actual_period = period_result[0]
+
+            conn.close()
+
+            return {
+                "afp_name": afp_name.title(),
+                "fund_type": fund_type,
+                "period": actual_period or period,
+                "rentability_data": rentability_data,
+                "data_source": "Azure SQL Database"
+            }
+
+        except Exception as e:
+            logging.error(f"Error consultando Azure SQL: {str(e)}")
+            return {"error": f"Error en consulta SQL: {str(e)}"}
+
+    def search_rentability_data(self, query: str, fund_type: int = None, afp_name: str = None) -> Dict:
+        """Busca datos de rentabilidad usando Azure AI Search"""
+        if not self.search_client:
+            return {"error": "Azure AI Search no configurado"}
+
+        try:
+            # Construir filtros
+            filters = []
+            if fund_type is not None:
+                filters.append(f"fund_type eq {fund_type}")
+            if afp_name:
+                filters.append(f"afp_name eq '{afp_name}'")
+
+            filter_expression = " and ".join(filters) if filters else None
+
+            # Realizar búsqueda
+            results = self.search_client.search(
+                search_text=query,
+                filter=filter_expression,
+                top=10,
+                include_total_count=True
+            )
+
+            # Procesar resultados
+            search_results = []
+            for result in results:
+                search_results.append({
+                    "fund_type": result.get("fund_type"),
+                    "period": result.get("period"),
+                    "afp_name": result.get("afp_name"),
+                    "content": result.get("content"),
+                    "rentability_data": json.loads(result.get("rentability_data", "{}")),
+                    "score": result.get("@search.score")
+                })
+
+            return {
+                "query": query,
+                "results": search_results,
+                "total_count": results.get_count(),
+                "data_source": "Azure AI Search"
+            }
+
+        except Exception as e:
+            logging.error(f"Error en búsqueda AI Search: {str(e)}")
+            return {"error": f"Error en búsqueda: {str(e)}"}
+
+    def get_comprehensive_analysis(self, afp_name: str, fund_type: int) -> Dict:
+        """Análisis comprehensivo usando todas las fuentes de datos"""
+        results = {
+            "afp_name": afp_name,
+            "fund_type": fund_type,
+            "analysis_sources": []
+        }
+
+        # Datos desde cache/blob storage
+        cache_data = self.get_rentability_by_afp(afp_name, fund_type)
+        if "error" not in cache_data:
+            results["cache_data"] = cache_data
+            results["analysis_sources"].append("blob_storage_cache")
+
+        # Datos desde Azure SQL
+        sql_data = self._get_rentability_from_sql(afp_name, fund_type)
+        if "error" not in sql_data:
+            results["sql_data"] = sql_data
+            results["analysis_sources"].append("azure_sql")
+
+        # Búsqueda semántica
+        search_query = f"rentabilidad {afp_name} fondo tipo {fund_type}"
+        search_data = self.search_rentability_data(search_query, fund_type, afp_name)
+        if "error" not in search_data and search_data.get("results"):
+            results["search_data"] = search_data
+            results["analysis_sources"].append("azure_ai_search")
+
+        return results
 
 # Instancia global del gestor de datos
 data_manager = None

@@ -32,9 +32,11 @@ class ExcelProcessor:
         """Procesa un archivo Excel de rentabilidad desde un stream de Azure Blob"""
 
         try:
-            # Leer el archivo Excel desde el stream
+            # Leer el archivo Excel desde el stream usando BytesID
+            from io import BytesIO
+
             blob_data = blob_stream.readall()
-            df = pd.read_excel(blob_data, header=None)
+            df = pd.read_excel(BytesIO(blob_data), header=None)
 
             result = {
                 "filename": blob_name,
@@ -50,10 +52,10 @@ class ExcelProcessor:
             # Extraer metadatos del archivo
             result["metadata"] = self._extract_file_metadata(blob_name)
 
-            # ALL: Guardar en Azure SQL Database
+            # TODO: Guardar en Azure SQL Database
             self._save_to_sql(rentability_data)
 
-            # ALL: Indexar en Azure AI Search
+            # TODO: Indexar en Azure AI Search
             self._index_in_search(rentability_data)
 
             return result
@@ -81,19 +83,16 @@ class ExcelProcessor:
             if fund_match:
                 extracted["fund_type"] = int(fund_match.group(1))
             else:
-                # Buscar en el contenido del archivo
-                for idx in range(min(5, len(df))):
-                    for col in range(df.shape[1]):
-                        cell_value = str(df.iloc[idx, col])
-                        if "Tipo" in cell_value and any(
-                            char.isdigit() for char in cell_value
-                        ):
-                            type_match = re.search(r"Tipo\s+(\d+)", cell_value)
-                            if type_match:
-                                extracted["fund_type"] = int(type_match.group(1))
-                                break
-
-            # Extraer período del nombre del archivo (más dinámico para cualquier año)
+                # Buscar patrones alternativos en el nombre del archivo
+                if "FP-1219-0" in filename:
+                    extracted["fund_type"] = 0
+                elif "FP-1220-1" in filename:
+                    extracted["fund_type"] = 1
+                elif "FP-1360" in filename:
+                    extracted["fund_type"] = 2
+                elif "FP-1220-2" in filename:
+                    extracted["fund_type"] = 3
+            # Extraer período del nombre del archivo
             period_match = re.search(r"(\w{2})(\d{4})", filename)
             if period_match:
                 month_abbr = period_match.group(1)
@@ -114,59 +113,111 @@ class ExcelProcessor:
                 }
                 extracted["period"] = f"{year}-{month_map.get(month_abbr, '01')}"
 
-            # Extraer períodos disponibles de las columnas (más dinámico)
+            # Extraer períodos disponibles de las columnas (fila 4 contiene los períodos)
             periods = []
-            for idx in range(4, 7):  # Filas donde están los períodos
-                for col in range(df.shape[1]):
-                    cell_value = str(df.iloc[idx, col])
-                    # Buscar patrones de fecha más generales
-                    if re.search(r"\d{4}", cell_value) and "/" in cell_value:
-                        periods.append(cell_value)
-                    elif re.search(r"\d{2}/\d{4}", cell_value):
-                        periods.append(cell_value)
-            extracted["periods_available"] = list(set(periods))
+            period_labels = []
 
-            # Extraer datos de AFPs (filas 7-11 aproximadamente)
+            # Buscar en la fila 4 los períodos - estructura real del Excel
+            for col in range(1, df.shape[1], 2):  # Cada 2 columnas (nominal y real)
+                if col < df.shape[1]:
+                    period_cell = str(df.iloc[4, col])
+                    if "/" in period_cell and any(
+                        char.isdigit() for char in period_cell
+                    ):
+                        periods.append(period_cell.strip())
+
+                        # Extraer la etiqueta del período de la fila 5
+                        if col < df.shape[1]:
+                            label_cell = str(df.iloc[5, col])
+                            if "año" in label_cell:
+                                period_labels.append(label_cell.strip())
+
+            extracted["periods_available"] = periods
+            extracted["period_labels"] = period_labels
+
+            # Extraer datos de AFPs (filas 7-10 aproximadamente)
             afp_names = ["Habitat", "Integra", "Prima", "Profuturo"]
 
-            for idx in range(7, min(12, len(df))):
+            for idx in range(7, min(11, len(df))):
                 afp_name_cell = str(df.iloc[idx, 0])
 
                 for afp in afp_names:
                     if afp.lower() in afp_name_cell.lower():
                         afp_data = {"afp_name": afp, "rentability_data": {}}
 
-                        # Extraer datos de rentabilidad por período
+                        # Extraer datos de rentabilidad por período - estructura real
                         col_idx = 1
-                        for period in extracted["periods_available"]:
+                        for i, period in enumerate(periods):
                             if col_idx < df.shape[1]:
                                 # Rentabilidad nominal
                                 nominal_val = df.iloc[idx, col_idx]
-                                if pd.notna(nominal_val):
+                                if pd.notna(nominal_val) and str(nominal_val) != "nan":
                                     try:
+                                        # Convertir a float, manejando posibles strings
+                                        if isinstance(nominal_val, str):
+                                            nominal_val = nominal_val.replace(",", ".")
+                                        nominal_float = float(nominal_val)
+
+                                        # Guardar con múltiples claves para facilitar búsqueda
+                                        period_key = f"period_{i+1}_nominal"
+                                        afp_data["rentability_data"][
+                                            period_key
+                                        ] = nominal_float
                                         afp_data["rentability_data"][
                                             f"{period}_nominal"
-                                        ] = float(nominal_val)
-                                    except:
-                                        pass
+                                        ] = nominal_float
+
+                                        # También guardar con clave descriptiva
+                                        if i < len(period_labels):
+                                            label_key = f"{period_labels[i]}_nominal"
+                                            afp_data["rentability_data"][
+                                                label_key
+                                            ] = nominal_float
+
+                                    except (ValueError, TypeError) as e:
+                                        logging.warning(
+                                            f"Error convirtiendo valor nominal {nominal_val}: {e}"
+                                        )
 
                                 # Rentabilidad real (siguiente columna)
                                 if col_idx + 1 < df.shape[1]:
                                     real_val = df.iloc[idx, col_idx + 1]
-                                    if pd.notna(real_val):
+                                    if pd.notna(real_val) and str(real_val) != "nan":
                                         try:
+                                            # Convertir a float, manejando posibles strings
+                                            if isinstance(real_val, str):
+                                                real_val = real_val.replace(",", ".")
+                                            real_float = float(real_val)
+
+                                            # Guardar con múltiples claves para facilitar búsqueda
+                                            period_key = f"period_{i+1}_real"
+                                            afp_data["rentability_data"][
+                                                period_key
+                                            ] = real_float
                                             afp_data["rentability_data"][
                                                 f"{period}_real"
-                                            ] = float(real_val)
-                                        except:
-                                            pass
+                                            ] = real_float
+
+                                            # También guardar con clave descriptiva
+                                            if i < len(period_labels):
+                                                label_key = f"{period_labels[i]}_real"
+                                                afp_data["rentability_data"][
+                                                    label_key
+                                                ] = real_float
+
+                                        except (ValueError, TypeError) as e:
+                                            logging.warning(
+                                                f"Error convirtiendo valor real {real_val}: {e}"
+                                            )
 
                                 col_idx += 2
 
                         if afp_data["rentability_data"]:
                             extracted["afp_data"].append(afp_data)
                         break
-
+            logging.info(
+                f"Extraídos datos para {len(extracted['afp_data'])} AFPs del archivo {filename}"
+            )
             return extracted
 
         except Exception as e:
@@ -241,11 +292,108 @@ class ExcelProcessor:
     def _save_to_sql(self, data: Dict):
         """Guarda datos de rentabilidad en Azure SQL Database"""
         # TODO: Implementar conexión a Azure SQL
-        logging.info(f"Guardando datos de rentabilidad en SQL Database")
-        pass
+        try:
+            import pyodbc
+            from config import AZURE_SQL_CONFIG
+
+            connection_string = AZURE_SQL_CONFIG.get("AZURE_SQL_CONNECTION_STRING")
+            if not connection_string:
+                logging.warning("Azure SQL connection string no configurado")
+                return
+
+            # Crear conexión
+            conn = pyodbc.connect(connection_string + "Database=sbsbdsql;")
+            cursor = conn.cursor()
+
+            # Crear tabla si no existe
+            cursor.execute(
+                """
+                IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='rentability_data' AND xtype='U')
+                CREATE TABLE rentability_data (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    fund_type INT,
+                    period VARCHAR(10),
+                    afp_name VARCHAR(50),
+                    period_key VARCHAR(50),
+                    rentability_value FLOAT,
+                    rentability_type VARCHAR(10),
+                    created_at DATETIME DEFAULT GETDATE()
+                )
+            """
+            )
+
+            # Insertar datos
+            fund_type = data.get("fund_type")
+            period = data.get("period")
+
+            for afp_data in data.get("afp_data", []):
+                afp_name = afp_data["afp_name"]
+                for key, value in afp_data["rentability_data"].items():
+                    rentability_type = "nominal" if "nominal" in key else "real"
+
+                    cursor.execute(
+                        """
+                        INSERT INTO rentability_data
+                        (fund_type, period, afp_name, period_key, rentability_value, rentability_type)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                        (fund_type, period, afp_name, key, value, rentability_type),
+                    )
+
+            conn.commit()
+            conn.close()
+            logging.info(f"Datos guardados en SQL Database para fondo tipo {fund_type}")
+
+        except Exception as e:
+            logging.error(f"Error guardando en SQL: {str(e)}")
 
     def _index_in_search(self, data: Dict):
         """Indexa datos de rentabilidad en Azure AI Search"""
-        # TODO: Implementar indexación en Azure AI Search
-        logging.info(f"Indexando datos de rentabilidad en AI Search")
-        pass
+        try:
+            from azure.search.documents import SearchClient
+            from azure.core.credentials import AzureKeyCredential
+            from config import AZURE_AISEARCH_API_KEY
+            import uuid
+
+            endpoint = AZURE_AISEARCH_API_KEY.get("AZURE_AISEARCH_ENDPOINT")
+            api_key = AZURE_AISEARCH_API_KEY.get("AZURE_AISEARCH_API_KEY")
+            index_name = AZURE_AISEARCH_API_KEY.get("AZURE_AISEARCH_INDEX_NAME")
+
+            if not all([endpoint, api_key, index_name]):
+                logging.warning("Azure AI Search no configurado completamente")
+                return
+
+            # Crear cliente de búsqueda
+            search_client = SearchClient(
+                endpoint=endpoint,
+                index_name=index_name,
+                credential=AzureKeyCredential(api_key),
+            )
+
+            # Preparar documentos para indexar
+            documents = []
+            fund_type = data.get("fund_type")
+            period = data.get("period")
+
+            for afp_data in data.get("afp_data", []):
+                afp_name = afp_data["afp_name"]
+
+                # Crear documento principal por AFP
+                doc = {
+                    "id": str(uuid.uuid4()),
+                    "fund_type": fund_type,
+                    "period": period,
+                    "afp_name": afp_name,
+                    "content": f"Rentabilidad del fondo tipo {fund_type} de {afp_name} para el período {period}",
+                    "rentability_data": json.dumps(afp_data["rentability_data"]),
+                    "document_type": "rentability_report",
+                }
+                documents.append(doc)
+
+            # Subir documentos
+            if documents:
+                search_client.upload_documents(documents)
+                logging.info(f"Indexados {len(documents)} documentos en AI Search")
+
+        except Exception as e:
+            logging.error(f"Error indexando en AI Search: {str(e)}")
