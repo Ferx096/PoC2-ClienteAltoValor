@@ -353,6 +353,7 @@ class ExcelProcessor:
             from azure.search.documents import SearchClient
             from azure.core.credentials import AzureKeyCredential
             from config import AZURE_AISEARCH_API_KEY
+            from datetime import datetime
             import uuid
 
             endpoint = AZURE_AISEARCH_API_KEY.get("AZURE_AISEARCH_ENDPOINT")
@@ -387,6 +388,7 @@ class ExcelProcessor:
                     "content": f"Rentabilidad del fondo tipo {fund_type} de {afp_name} para el período {period}",
                     "rentability_data": json.dumps(afp_data["rentability_data"]),
                     "document_type": "rentability_report",
+                    "createdAt": datetime.now().isoformat() + "Z",
                 }
                 documents.append(doc)
 

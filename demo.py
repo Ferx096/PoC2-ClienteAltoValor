@@ -5,7 +5,6 @@ Muestra las capacidades principales del sistema
 """
 import sys
 import os
-
 from src.data_manager import RentabilityDataManager
 import json
 

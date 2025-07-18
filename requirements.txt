@@ -1,8 +1,9 @@
-azure-functions
 openai
+azure-functions
 azure-storage-blob
 azure-search-documents
-azure-identity  
+azure-identity 
+azure-core
 python-dotenv
 pandas
 openpyxl

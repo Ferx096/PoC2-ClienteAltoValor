@@ -66,7 +66,7 @@ def get_openai_client():
     return AzureOpenAI(
         azure_endpoint=AZURE_CONFIG["endpoint"],
         api_key=AZURE_CONFIG["api_key"],
-        api_version=AZURE_CONFIG["api_version"]
+        api_version=AZURE_CONFIG["api_version"],
     )
 
 

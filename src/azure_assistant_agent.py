@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
 Azure OpenAI Assistant - Implementación 100% Azure nativa
-Agente especializado en rentabilidad de fondos SPP
+Agente especializado en rentabilidad de fondos SPP - VERSION CORREGIDA
 """
+
 import os
 import json
 import time
@@ -21,7 +22,7 @@ class SPPAssistantAgent:
         self.assistant_id = None
         self.thread_id = None
 
-        # Funciones especializadas para datos de rentabilidad
+        # Funciones especializadas para datos de rentabilidad - ESQUEMA CORREGIDO
         self.functions = [
             {
                 "type": "function",
@@ -35,7 +36,7 @@ class SPPAssistantAgent:
                                 "type": "string",
                                 "description": "Nombre de la AFP (Habitat, Integra, Prima, Profuturo)",
                             },
-                            "fund_type": {
+                            "fund_type": {  # ✅ MANTENER fund_type para compatibilidad interna
                                 "type": "integer",
                                 "description": "Tipo de fondo (0, 1, 2, 3)",
                             },
@@ -66,7 +67,7 @@ class SPPAssistantAgent:
                                 "items": {"type": "string"},
                                 "description": "Lista de AFPs a comparar",
                             },
-                            "fund_type": {
+                            "fund_type": {  # ✅ MANTENER fund_type para compatibilidad interna
                                 "type": "integer",
                                 "description": "Tipo de fondo (0, 1, 2, 3)",
                             },
@@ -92,7 +93,7 @@ class SPPAssistantAgent:
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "fund_types": {
+                            "fund_types": {  # ✅ CORREGIDO: debe ser fund_types (plural)
                                 "type": "array",
                                 "items": {"type": "integer"},
                                 "description": "Tipos de fondos a analizar (0, 1, 2, 3)",
@@ -133,7 +134,7 @@ class SPPAssistantAgent:
                                 "type": "string",
                                 "description": "AFP específica o 'all' para todas",
                             },
-                            "fund_type": {
+                            "fund_type": {  # ✅ MANTENER fund_type para compatibilidad interna
                                 "type": "integer",
                                 "description": "Tipo de fondo",
                             },
@@ -164,7 +165,7 @@ class SPPAssistantAgent:
                                 "type": "string",
                                 "description": "Consulta en lenguaje natural sobre rentabilidad",
                             },
-                            "fund_type": {
+                            "fund_type": {  # ✅ MANTENER fund_type para compatibilidad interna
                                 "type": "integer",
                                 "description": "Filtro opcional por tipo de fondo",
                             },
@@ -189,7 +190,7 @@ class SPPAssistantAgent:
                                 "type": "string",
                                 "description": "Nombre de la AFP a analizar",
                             },
-                            "fund_type": {
+                            "fund_type": {  # ✅ MANTENER fund_type para compatibilidad interna
                                 "type": "integer",
                                 "description": "Tipo de fondo a analizar",
                             },
@@ -322,7 +323,7 @@ ESTILO DE RESPUESTA:
     def _get_rentability_by_afp(self, args: Dict) -> Dict:
         """Obtiene datos de rentabilidad por AFP usando el gestor de datos"""
         afp_name = args.get("afp_name", "")
-        fund_type = args.get("fund_type", 0)
+        fund_type = args.get("fund_type", 0)  # ✅ USAR fund_type internamente
         period = args.get("period")
 
         return self.data_manager.get_rentability_by_afp(afp_name, fund_type, period)
@@ -330,14 +331,14 @@ ESTILO DE RESPUESTA:
     def _compare_afp_rentability(self, args: Dict) -> Dict:
         """Compara rentabilidad entre AFPs usando el gestor de datos"""
         afps = args.get("afps", [])
-        fund_type = args.get("fund_type", 0)
+        fund_type = args.get("fund_type", 0)  # ✅ USAR fund_type internamente
         period = args.get("period")
 
         return self.data_manager.compare_afp_rentability(afps, fund_type, period)
 
     def _analyze_fund_performance(self, args: Dict) -> Dict:
         """Analiza el rendimiento de diferentes tipos de fondos usando el gestor de datos"""
-        fund_types = args.get("fund_types", [0])
+        fund_types = args.get("fund_types", [0])  # ✅ CORREGIDO: fund_types (plural)
         afp_filter = args.get("afp_filter", "all")
 
         return self.data_manager.analyze_fund_performance(fund_types, afp_filter)
@@ -345,7 +346,7 @@ ESTILO DE RESPUESTA:
     def _get_historical_trends(self, args: Dict) -> Dict:
         """Analiza tendencias históricas de rentabilidad"""
         afp_name = args.get("afp_name", "all")
-        fund_type = args.get("fund_type", 0)
+        fund_type = args.get("fund_type", 0)  # ✅ USAR fund_type internamente
         analysis_type = args.get("analysis_type", "evolution")
 
         # Obtener datos disponibles para análisis temporal
@@ -381,7 +382,7 @@ ESTILO DE RESPUESTA:
 
             return {
                 "afp_name": afp_name,
-                "fund_type": fund_type,
+                "fund_type": fund_type,  # ✅ MANTENER fund_type en respuesta
                 "analysis_type": analysis_type,
                 "historical_data": evolution_data,
                 "available_periods": available_periods,
@@ -390,7 +391,7 @@ ESTILO DE RESPUESTA:
 
         return {
             "afp_name": afp_name,
-            "fund_type": fund_type,
+            "fund_type": fund_type,  # ✅ MANTENER fund_type en respuesta
             "analysis_type": analysis_type,
             "available_periods": available_periods,
             "insights": f"Análisis de {analysis_type} disponible con datos históricos limitados",
@@ -399,7 +400,7 @@ ESTILO DE RESPUESTA:
     def _search_rentability_semantic(self, args: Dict) -> Dict:
         """Búsqueda semántica usando Azure AI Search"""
         query = args.get("query", "")
-        fund_type = args.get("fund_type")
+        fund_type = args.get("fund_type")  # ✅ USAR fund_type internamente
         afp_name = args.get("afp_name")
 
         return self.data_manager.search_rentability_data(query, fund_type, afp_name)
@@ -407,7 +408,7 @@ ESTILO DE RESPUESTA:
     def _get_comprehensive_analysis(self, args: Dict) -> Dict:
         """Análisis comprehensivo usando todas las fuentes de datos"""
         afp_name = args.get("afp_name", "")
-        fund_type = args.get("fund_type", 0)
+        fund_type = args.get("fund_type", 0)  # ✅ USAR fund_type internamente
 
         return self.data_manager.get_comprehensive_analysis(afp_name, fund_type)
 
