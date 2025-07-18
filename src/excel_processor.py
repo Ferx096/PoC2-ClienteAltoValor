@@ -382,9 +382,9 @@ class ExcelProcessor:
                 # Crear documento principal por AFP
                 doc = {
                     "id": str(uuid.uuid4()),
-                    "fund_type": fund_type,
+                    "fundType": fund_type,
                     "period": period,
-                    "afp_name": afp_name,
+                    "afpName": afp_name,
                     "content": f"Rentabilidad del fondo tipo {fund_type} de {afp_name} para el período {period}",
                     "rentability_data": json.dumps(afp_data["rentability_data"]),
                     "document_type": "rentability_report",

@@ -492,9 +492,9 @@ class RentabilityDataManager:
             # Construir filtros
             filters = []
             if fund_type is not None:
-                filters.append(f"fund_type eq {fund_type}")
+                filters.append(f"fundType eq {fund_type}")
             if afp_name:
-                filters.append(f"afp_name eq '{afp_name}'")
+                filters.append(f"afpName  eq '{afp_name}'")
 
             filter_expression = " and ".join(filters) if filters else None
 
@@ -511,12 +511,12 @@ class RentabilityDataManager:
             for result in results:
                 search_results.append(
                     {
-                        "fund_type": result.get("fund_type"),
+                        "fund_type": result.get("fundType"),
                         "period": result.get("period"),
-                        "afp_name": result.get("afp_name"),
+                        "afp_name": result.get("afpName"),
                         "content": result.get("content"),
                         "rentability_data": json.loads(
-                            result.get("rentability_data", "{}")
+                            result.get("rentabilityData", "{}")
                         ),
                         "score": result.get("@search.score"),
                     }

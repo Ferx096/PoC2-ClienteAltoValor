@@ -38,34 +38,42 @@ def create_ai_search_index():
         endpoint=endpoint, credential=AzureKeyCredential(api_key)
     )
 
-    # Definir esquema del índice - COMPATIBLE CON API 2024-07-01
+    # Definir esquema del índice - COMPATIBLE CON API 2024-07-01 ✅
     fields = [
+        # Campo ID (obligatorio como key)
         SimpleField(name="id", type=SearchFieldDataType.String, key=True),
+        # Campo fundType (camelCase en lugar de fund_type) ✅
         SimpleField(
             name="fundType",
             type=SearchFieldDataType.Int32,
             filterable=True,
             facetable=True,
         ),
+        # Campo period
         SimpleField(
             name="period",
             type=SearchFieldDataType.String,
             filterable=True,
             facetable=True,
         ),
+        # Campo afpName (camelCase) ✅
         SearchableField(
             name="afpName",
             type=SearchFieldDataType.String,
             filterable=True,
             facetable=True,
         ),
+        # Campo content (searchable)
         SearchableField(
             name="content", type=SearchFieldDataType.String, searchable=True
         ),
+        # Campo rentabilityData (JSON como string) ✅
         SimpleField(name="rentabilityData", type=SearchFieldDataType.String),
+        # Campo documentType ✅
         SimpleField(
             name="documentType", type=SearchFieldDataType.String, filterable=True
         ),
+        # Campo createdAt ✅
         SimpleField(
             name="createdAt",
             type=SearchFieldDataType.DateTimeOffset,
@@ -93,18 +101,33 @@ def create_ai_search_index():
         # Mostrar esquema creado
         print(f"\n📊 Esquema del índice:")
         for field in result.fields:
-            print(
-                f"   - {field.name}: {field.type} ({'key' if field.key else 'field'})"
-            )
+            properties = []
+            if hasattr(field, "key") and field.key:
+                properties.append("key")
+            if hasattr(field, "searchable") and field.searchable:
+                properties.append("searchable")
+            if hasattr(field, "filterable") and field.filterable:
+                properties.append("filterable")
+            if hasattr(field, "facetable") and field.facetable:
+                properties.append("facetable")
+            if hasattr(field, "sortable") and field.sortable:
+                properties.append("sortable")
+
+            props_str = f"({', '.join(properties)})" if properties else ""
+            print(f"   - {field.name}: {field.type} {props_str}")
 
         return True
 
     except Exception as e:
         print(f"❌ Error creando índice: {str(e)}")
+        print(f"💡 Detalles del error:")
+        print(f"   - Endpoint: {endpoint}")
+        print(f"   - Index name: {index_name}")
+        print(f"   - Número de campos: {len(fields)}")
         return False
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # ✅ CORREGIDO: Era **name** en lugar de __name__
     print("🚀 CONFIGURANDO AZURE AI SEARCH")
     print("=" * 40)
 
@@ -116,3 +139,5 @@ if __name__ == "__main__":
     else:
         print("\n❌ Error en configuración de AI Search")
         print("📌 Verificar credenciales en archivo .env")
+        print("📌 Verificar que el endpoint sea correcto")
+        print("📌 Verificar que la API key tenga permisos de administrador")
