@@ -64,6 +64,80 @@ class ExcelProcessor:
             logging.error(f"Error procesando Excel desde blob storage: {str(e)}")
             return {"filename": blob_name, "status": "error", "error": str(e)}
 
+    def _is_valid_numeric_value(self, value) -> bool:
+        """Verifica si un valor es válido para conversión numérica"""
+        if pd.isna(value):
+            return False
+
+        value_str = str(value).strip().upper()
+
+        # ✅ FILTRAR VALORES NO VÁLIDOS
+        invalid_values = {
+            "N.A.",
+            "NA",
+            "N/A",
+            "NAN",
+            "NONE",
+            "NULL",
+            "",
+            "-",
+            "--",
+            "...",
+            "N.D.",
+            "ND",
+            "NO DISPONIBLE",
+            "NO APLICA",
+            "#N/A",
+            "#VALUE!",
+            "#REF!",
+        }
+
+        if value_str in invalid_values:
+            return False
+
+        # Verificar si contiene solo caracteres válidos para números
+        # Permitir: dígitos, punto, coma, signo negativo, espacios
+        if not re.match(r"^[-+]?[\d\s,\.]+$", value_str):
+            return False
+
+        return True
+
+    def _convert_to_float(self, value) -> Optional[float]:
+        """Convierte un valor a float manejando diferentes formatos"""
+        try:
+            if isinstance(value, (int, float)):
+                return float(value)
+
+            value_str = str(value).strip()
+
+            # Manejar separadores decimales
+            # Convertir coma decimal a punto (formato europeo)
+            if "," in value_str and "." not in value_str:
+                value_str = value_str.replace(",", ".")
+            elif "," in value_str and "." in value_str:
+                # Si tiene ambos, asumir que coma es separador de miles
+                value_str = value_str.replace(",", "")
+
+            # Eliminar espacios
+            value_str = value_str.replace(" ", "")
+
+            # Convertir a float
+            result = float(value_str)
+
+            # Validar que el resultado sea razonable para rentabilidad
+            # Rentabilidad típica está entre -100% y +100% (o más en casos extremos)
+            if -1000 <= result <= 1000:  # Rango amplio para aceptar diferentes formatos
+                return result
+            else:
+                logging.warning(
+                    f"Valor de rentabilidad fuera de rango esperado: {result}"
+                )
+                return None
+
+        except (ValueError, TypeError) as e:
+            logging.debug(f"Error convirtiendo '{value}' a float: {e}")
+            return None
+
     def _extract_rentability_data(
         self, df: pd.DataFrame, filename: str
     ) -> Dict[str, Any]:
@@ -92,6 +166,7 @@ class ExcelProcessor:
                     extracted["fund_type"] = 2
                 elif "FP-1220-2" in filename:
                     extracted["fund_type"] = 3
+
             # Extraer período del nombre del archivo
             period_match = re.search(r"(\w{2})(\d{4})", filename)
             if period_match:
@@ -149,15 +224,11 @@ class ExcelProcessor:
                         col_idx = 1
                         for i, period in enumerate(periods):
                             if col_idx < df.shape[1]:
-                                # Rentabilidad nominal
+                                # ✅ RENTABILIDAD NOMINAL - CON FILTRADO MEJORADO
                                 nominal_val = df.iloc[idx, col_idx]
-                                if pd.notna(nominal_val) and str(nominal_val) != "nan":
-                                    try:
-                                        # Convertir a float, manejando posibles strings
-                                        if isinstance(nominal_val, str):
-                                            nominal_val = nominal_val.replace(",", ".")
-                                        nominal_float = float(nominal_val)
-
+                                if self._is_valid_numeric_value(nominal_val):
+                                    nominal_float = self._convert_to_float(nominal_val)
+                                    if nominal_float is not None:
                                         # Guardar con múltiples claves para facilitar búsqueda
                                         period_key = f"period_{i+1}_nominal"
                                         afp_data["rentability_data"][
@@ -174,21 +245,12 @@ class ExcelProcessor:
                                                 label_key
                                             ] = nominal_float
 
-                                    except (ValueError, TypeError) as e:
-                                        logging.warning(
-                                            f"Error convirtiendo valor nominal {nominal_val}: {e}"
-                                        )
-
-                                # Rentabilidad real (siguiente columna)
+                                # ✅ RENTABILIDAD REAL - CON FILTRADO MEJORADO
                                 if col_idx + 1 < df.shape[1]:
                                     real_val = df.iloc[idx, col_idx + 1]
-                                    if pd.notna(real_val) and str(real_val) != "nan":
-                                        try:
-                                            # Convertir a float, manejando posibles strings
-                                            if isinstance(real_val, str):
-                                                real_val = real_val.replace(",", ".")
-                                            real_float = float(real_val)
-
+                                    if self._is_valid_numeric_value(real_val):
+                                        real_float = self._convert_to_float(real_val)
+                                        if real_float is not None:
                                             # Guardar con múltiples claves para facilitar búsqueda
                                             period_key = f"period_{i+1}_real"
                                             afp_data["rentability_data"][
@@ -205,16 +267,12 @@ class ExcelProcessor:
                                                     label_key
                                                 ] = real_float
 
-                                        except (ValueError, TypeError) as e:
-                                            logging.warning(
-                                                f"Error convirtiendo valor real {real_val}: {e}"
-                                            )
-
                                 col_idx += 2
 
                         if afp_data["rentability_data"]:
                             extracted["afp_data"].append(afp_data)
                         break
+
             logging.info(
                 f"Extraídos datos para {len(extracted['afp_data'])} AFPs del archivo {filename}"
             )
@@ -291,7 +349,6 @@ class ExcelProcessor:
 
     def _save_to_sql(self, data: Dict):
         """Guarda datos de rentabilidad en Azure SQL Database"""
-        # TODO: Implementar conexión a Azure SQL
         try:
             import pyodbc
             from config import AZURE_SQL_CONFIG
@@ -379,16 +436,19 @@ class ExcelProcessor:
             for afp_data in data.get("afp_data", []):
                 afp_name = afp_data["afp_name"]
 
-                # Crear documento principal por AFP
+                # ✅ DOCUMENTO CON NOMBRES EXACTOS DEL ESQUEMA (camelCase)
                 doc = {
-                    "id": str(uuid.uuid4()),
-                    "fundType": fund_type,
-                    "period": period,
-                    "afpName": afp_name,
-                    "content": f"Rentabilidad del fondo tipo {fund_type} de {afp_name} para el período {period}",
-                    "rentabilityData": json.dumps(afp_data["rentability_data"]),
-                    "documentType": "rentability_report",
-                    "createdAt": datetime.now().isoformat() + "Z",
+                    "id": str(uuid.uuid4()),  # ✅ id
+                    "fundType": fund_type,  # ✅ fundType (camelCase)
+                    "period": period,  # ✅ period
+                    "afpName": afp_name,  # ✅ afpName (camelCase)
+                    "content": f"Rentabilidad del fondo tipo {fund_type} de {afp_name} para el período {period}",  # ✅ content
+                    "rentabilityData": json.dumps(
+                        afp_data["rentability_data"]
+                    ),  # ✅ rentabilityData (camelCase)
+                    "documentType": "rentability_report",  # ✅ documentType (camelCase)
+                    "createdAt": datetime.now().isoformat()
+                    + "Z",  # ✅ createdAt (camelCase)
                 }
                 documents.append(doc)
 
@@ -399,3 +459,6 @@ class ExcelProcessor:
 
         except Exception as e:
             logging.error(f"Error indexando en AI Search: {str(e)}")
+            # Agregar más detalles del error para debugging
+            if hasattr(e, "error") and hasattr(e.error, "message"):
+                logging.error(f"Detalles del error: {e.error.message}")
