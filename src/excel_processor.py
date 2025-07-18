@@ -386,8 +386,8 @@ class ExcelProcessor:
                     "period": period,
                     "afpName": afp_name,
                     "content": f"Rentabilidad del fondo tipo {fund_type} de {afp_name} para el período {period}",
-                    "rentability_data": json.dumps(afp_data["rentability_data"]),
-                    "document_type": "rentability_report",
+                    "rentabilityData": json.dumps(afp_data["rentability_data"]),
+                    "documentType": "rentability_report",
                     "createdAt": datetime.now().isoformat() + "Z",
                 }
                 documents.append(doc)

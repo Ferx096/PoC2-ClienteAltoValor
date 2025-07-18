@@ -569,3 +569,4 @@ def get_data_manager() -> RentabilityDataManager:
     if data_manager is None:
         data_manager = RentabilityDataManager()
     return data_manager
+
