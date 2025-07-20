@@ -570,3 +570,21 @@ def get_data_manager() -> RentabilityDataManager:
         data_manager = RentabilityDataManager()
     return data_manager
 
+
+def get_production_data_manager():
+    """Factory para elegir el tipo de data manager"""
+    import os
+
+    # Variable de entorno para activar el cache híbrido
+    use_production_cache = os.getenv("USE_PRODUCTION_CACHE", "false").lower() == "true"
+
+    if use_production_cache:
+        try:
+            from .cache.production_cache_manager import AutoUpdatingDataManager
+
+            return AutoUpdatingDataManager()
+        except ImportError:
+            # Fallback al sistema actual
+            return get_data_manager()
+    else:
+        return get_data_manager()

@@ -9,7 +9,7 @@ import json
 import time
 from typing import Dict, List, Any, Optional
 from config import get_openai_client, get_deployment_name
-from .data_manager import get_data_manager
+from .data_manager import get_production_data_manager as get_data_manager
 
 
 class SPPAssistantAgent:
