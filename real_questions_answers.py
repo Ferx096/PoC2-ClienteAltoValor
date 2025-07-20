@@ -159,7 +159,7 @@ if __name__ == "__main__":
     print("Demostrando que el agente trabaja con datos exactos de los archivos Excel")
     print("=" * 80)
 
-    os.chdir("/workspace/PoC2-ClienteAltoValor")
+    #os.chdir("/workspace/PoC2-ClienteAltoValor")
 
     try:
         # Generar Q&A basado en datos reales
