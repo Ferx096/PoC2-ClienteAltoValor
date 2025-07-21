@@ -9,6 +9,7 @@ import logging
 from datetime import datetime
 from src.excel_processor import ExcelProcessor
 
+
 # MEJORADO: Usar el nuevo cache manager
 try:
     from src.cache.production_cache_manager import get_production_data_manager
@@ -62,7 +63,7 @@ def auto_refresh_on_excel_upload(myblob: func.InputStream):
         else:
             # Fallback: Reinicializar data manager del agente
             logging.info("🔄 Refrescando data manager del agente...")
-            spp_agent.data_manager.refresh_data()
+            data_manager._auto_refresh_check()
             logging.info("✅ Data manager refrescado automáticamente")
 
         # 4. Registro de auditoría
@@ -279,7 +280,7 @@ def health_check_with_cache(req: func.HttpRequest) -> func.HttpResponse:
     """
     try:
         if USE_PRODUCTION_CACHE:
-            cache_stats = data_manager.get_cache_stats()
+            cache_stats = data_manager.get_summary_statistics()
             system_type = "production_cache"
         else:
             cache_stats = {"type": "legacy_ram_cache"}
