@@ -10,5 +10,3 @@ openpyxl
 xlrd
 pyodbc
 langchain-openai
-hashlib 
-datetime
