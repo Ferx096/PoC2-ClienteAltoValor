@@ -1,10 +1,9 @@
 {
   "IsEncrypted": false,
   "Values": {
-    "USE_PRODUCTION_CACHE": "true",
-    "CACHE_TTL_HOURS": "24",
-    "AUTO_REFRESH_INTERVAL_MINUTES": "5",
     "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=sbsblob;AccountKey=hNX4+xOtvqbWVh7ljNOuDb40tHCkelOexsEjIG5557+Xo0AenB8xl0ljUc5ybSLECc2lhDlXnxvv+AStWlcJyg==;EndpointSuffix=core.windows.net",
+    "USE_PRODUCTION_CACHE": "true",
+    "AUTO_REFRESH_INTERVAL_MINUTES": "5",
     "FUNCTIONS_WORKER_RUNTIME": "python",
     "AZURE_OPENAI_ENDPOINT": "https://ia-analytics.cognitiveservices.azure.com/",
     "AZURE_OPENAI_API_KEY": "EKwkdBVRemJ5RjWCoJMIz83aQWF7hjL2BUW30spK0MEfqLOWArXhJQQJ99BGACYeBjFXJ3w3AAAAACOG4F3u",

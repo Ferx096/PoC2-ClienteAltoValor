@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -163,7 +164,7 @@
             body {
                 padding: 10px;
             }
-            
+
             #spp-chat-widget {
                 height: 100vh;
                 max-height: 600px;
@@ -171,6 +172,7 @@
         }
     </style>
 </head>
+
 <body>
     <div id="spp-chat-widget">
         <div class="widget-header">
@@ -181,7 +183,8 @@
         <div id="chat-messages">
             <div class="message agent-message">
                 <div class="message-label">Agente SPP</div>
-                ¡Hola! Soy tu asistente especializado en rentabilidad de fondos del SPP. Puedo ayudarte con información sobre AFPs, tipos de fondos y análisis de rentabilidad. ¿En qué puedo ayudarte?
+                ¡Hola! Soy tu asistente especializado en rentabilidad de fondos del SPP. Puedo ayudarte con información
+                sobre AFPs, tipos de fondos y análisis de rentabilidad. ¿En qué puedo ayudarte?
             </div>
         </div>
 
@@ -191,7 +194,8 @@
 
         <div class="examples">
             <h4>💡 Ejemplos de consultas:</h4>
-            <div class="example-query" onclick="setQuery('¿Cuál es la rentabilidad de Habitat en el fondo conservador?')">
+            <div class="example-query"
+                onclick="setQuery('¿Cuál es la rentabilidad de Habitat en el fondo conservador?')">
                 ¿Rentabilidad de Habitat en fondo conservador?
             </div>
             <div class="example-query" onclick="setQuery('Compara Integra vs Prima en fondos de crecimiento')">
@@ -203,18 +207,15 @@
         </div>
 
         <div class="input-container">
-            <input type="text" 
-                id="chat-input" 
-                placeholder="Pregunta sobre rentabilidad de AFPs..."
-                maxlength="500">
+            <input type="text" id="chat-input" placeholder="Pregunta sobre rentabilidad de AFPs..." maxlength="500">
             <button id="send-btn">Enviar</button>
         </div>
     </div>
 
     <script>
         // Configuración - Cambiar por tu URL de producción
-        const API_URL = 'http://localhost:7071/api/chat';
-        
+        const API_URL = 'https://sbsfuncion-e4crawc6f5hegkhj.eastus-01.azurewebsites.net/api/chat';
+
         const chatMessages = document.getElementById('chat-messages');
         const chatInput = document.getElementById('chat-input');
         const sendBtn = document.getElementById('send-btn');
@@ -228,18 +229,18 @@
         function addMessage(content, isUser = false) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${isUser ? 'user-message' : 'agent-message'}`;
-            
+
             const labelDiv = document.createElement('div');
             labelDiv.className = 'message-label';
             labelDiv.textContent = isUser ? 'Tú' : 'Agente SPP';
-            
+
             const contentDiv = document.createElement('div');
             contentDiv.textContent = content;
-            
+
             messageDiv.appendChild(labelDiv);
             messageDiv.appendChild(contentDiv);
             chatMessages.appendChild(messageDiv);
-            
+
             // Scroll al final
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
@@ -252,17 +253,17 @@
 
         async function sendMessage() {
             const query = chatInput.value.trim();
-            
+
             if (!query) {
                 alert('Por favor, escribe una pregunta.');
                 return;
             }
-            
+
             // Mostrar mensaje del usuario
             addMessage(query, true);
             chatInput.value = '';
             showLoading(true);
-            
+
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
@@ -272,19 +273,19 @@
                     },
                     body: JSON.stringify({ query: query })
                 });
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
-                
+
                 const data = await response.json();
-                
+
                 if (data.response) {
                     addMessage(data.response);
                 } else {
                     addMessage('Lo siento, no pude procesar tu consulta. Intenta de nuevo.');
                 }
-                
+
             } catch (error) {
                 console.error('Error:', error);
                 addMessage('❌ Error de conexión. Verifica que el servidor esté ejecutándose en ' + API_URL);
@@ -296,8 +297,8 @@
 
         // Event listeners
         sendBtn.addEventListener('click', sendMessage);
-        
-        chatInput.addEventListener('keypress', function(e) {
+
+        chatInput.addEventListener('keypress', function (e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 sendMessage();
@@ -313,4 +314,5 @@
         }, 1000);
     </script>
 </body>
+
 </html>
