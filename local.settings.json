@@ -1,6 +1,9 @@
 {
   "IsEncrypted": false,
   "Values": {
+    "USE_PRODUCTION_CACHE": "true",
+    "CACHE_TTL_HOURS": "24",
+    "AUTO_REFRESH_INTERVAL_MINUTES": "5",
     "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=sbsblob;AccountKey=hNX4+xOtvqbWVh7ljNOuDb40tHCkelOexsEjIG5557+Xo0AenB8xl0ljUc5ybSLECc2lhDlXnxvv+AStWlcJyg==;EndpointSuffix=core.windows.net",
     "FUNCTIONS_WORKER_RUNTIME": "python",
     "AZURE_OPENAI_ENDPOINT": "https://ia-analytics.cognitiveservices.azure.com/",
@@ -11,14 +14,6 @@
     "AZURE_BLOB_ACCOUNT_KEY": "hNX4+xOtvqbWVh7ljNOuDb40tHCkelOexsEjIG5557+Xo0AenB8xl0ljUc5ybSLECc2lhDlXnxvv+AStWlcJyg==",
     "AZURE_BLOB_CONNECTION_STRING": "DefaultEndpointsProtocol=https;AccountName=sbsblob;AccountKey=hNX4+xOtvqbWVh7ljNOuDb40tHCkelOexsEjIG5557+Xo0AenB8xl0ljUc5ybSLECc2lhDlXnxvv+AStWlcJyg==;EndpointSuffix=core.windows.net",
     "AZURE_BLOB_ACCOUNT_NAME": "sbsblob",
-    "AZURE_BLOB_CONTAINER_NAME": "contenedorsbs2025",
-    "AZURE_AISEARCH_ENDPOINT": "https://sbssearch.search.windows.net",
-    "AZURE_AISEARCH_API_KEY": "4fgOKSKwC09nqLE8qTlKYL5tUhCkpifarAjS6WHQOpAzSeDxm6bN",
-    "AZURE_AISEARCH_INDEX_NAME": "sbs_index",
-    "AZURE_SQL_ENABLED": "true",
-    "AZURE_SQL_SERVER": "sbsservidorsql.database.windows.net",
-    "AZURE_SQL_USERNAME": "sbs_test_sql",
-    "AZURE_SQL_PASSWORD": "U12345678#",
-    "AZURE_SQL_CONNECTION_STRING": "Driver={ODBC Driver 17 for SQL Server};Server=tcp:sbsservidorsql.database.windows.net,1433;Database=sbsbdsql;Uid=sbs_test_sql;Pwd=U12345678#;Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
+    "AZURE_BLOB_CONTAINER_NAME": "contenedorsbs2025"
   }
 }
