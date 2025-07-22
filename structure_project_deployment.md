@@ -56,6 +56,7 @@ html<!-- En CUALQUIER página web del mundo -->
 
 ## Arquitectura completa
 
+```
 🌍 Cualquier Página Web
 │
 ├── 📱 iframe → GitHub Pages → spp-widget.html
@@ -70,3 +71,4 @@ html<!-- En CUALQUIER página web del mundo -->
     ├── /api/chat (SPP Agent)
     ├── /api/health
     └── Data Manager + Excel Processing
+```
