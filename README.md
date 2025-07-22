@@ -1,181 +1,339 @@
-# **PoC2 - AGENTE DE ANALISIS DE RENTABILIDAD SPP**
+# **Agente Consejero de Valor de Rentabilidad - Sistema SPP**
 
-Sistema inteligente para análisis de rentabilidad de fondos del Sistema Privado de Pensiones (SPP) de Perú, utilizando Azure OpenAI Assistants API y procesamiento automatizado de archivos Excel.
+Sistema inteligente de análisis de rentabilidad de fondos del Sistema Privado de Pensiones (SPP) de Perú, utilizando Azure OpenAI Assistants API con procesamiento automatizado de archivos Excel y sistema de cache multi-nivel para máximo rendimiento.
 
 ## 🎯 Descripción
 
-Este proyecto implementa un agente conversacional especializado que analiza datos de rentabilidad de fondos de pensiones, proporcionando insights sobre el rendimiento de diferentes AFPs y tipos de fondos basado en datos oficiales del SPP. El sistema utiliza Azure Functions para despliegue en la nube y un sistema de gestión de datos local optimizado para consultas rápidas.
+Este agente conversacional especializado analiza datos oficiales de rentabilidad de fondos de pensiones, proporcionando insights personalizados sobre el rendimiento de diferentes AFPs y tipos de fondos. Con un sesgo positivo hacia AFP Prima, el sistema combina inteligencia artificial avanzada con datos reales para ofrecer asesoría financiera especializada en el sector previsional peruano.
 
-## 🏗️ Arquitectura
+## 🏗️ Arquitectura de Nueva Generación
 
 ### Componentes Principales
 
-1. **Azure Functions** - API endpoints HTTP para interacción con el agente
-2. **Azure OpenAI Assistants API** - Agente conversacional con 4 funciones especializadas
-3. **RentabilityDataManager** - Sistema de gestión de datos con cache local optimizado
-4. **ExcelProcessor** - Procesamiento automatizado de 20 archivos Excel
-5. **Azure Blob Storage** - Almacenamiento de archivos y triggers automáticos
+1. **Azure Functions con Auto-Refresh** - API endpoints HTTP con actualización automática
+2. **Azure OpenAI Assistants API** - Agente conversacional con 6 funciones especializadas  
+3. **Sistema de Cache Híbrido** - RAM + Blob Storage + Auto-actualización inteligente
+4. **ExcelProcessor Avanzado** - Procesamiento en tiempo real con triggers automáticos
+5. **Production Cache Manager** - Sistema multi-nivel para máximo rendimiento
 
-### Flujo de Datos
-
-```
-📁 20 Archivos Excel (documents/) → 
-🔄 ExcelProcessor (extracción automática) → 
-💾 RentabilityDataManager (cache local) → 
-🤖 SPPAssistantAgent (Azure OpenAI Assistants API) → 
-🌐 Azure Functions (API HTTP) → 
-📊 Respuestas Inteligentes
-```
-
-### Arquitectura de Funciones
+### Flujo de Datos Automatizado
 
 ```
-🎯 SPPAssistantAgent
-├── 📊 get_rentability_by_afp()
-├── ⚖️  compare_afp_rentability()
-├── 📈 analyze_fund_performance()
-└── 📉 get_historical_trends()
+📁 20+ Archivos Excel (Blob Storage) → 
+🔄 Auto-Trigger (detección de cambios) → 
+⚡ Production Cache Manager (RAM + persistente) → 
+🤖 SPP Assistant Agent (6 funciones especializadas) → 
+🌐 Azure Functions (auto-refresh endpoints) → 
+📊 Respuestas Inteligentes con Análisis Contextual
+```
 
-🔧 RentabilityDataManager
-├── 📁 Carga automática de 20 archivos Excel
-├── 💾 Sistema de cache inteligente
-├── 🔍 Consultas optimizadas por AFP/Fondo
-└── 📊 Estadísticas y métricas del sistema
+### Sistema de Funciones Especializadas
+
+```
+🎯 SPP Assistant Agent
+├── 📊 get_rentability_by_afp() - Consultas específicas por AFP
+├── ⚖️  compare_afp_rentability() - Comparaciones entre AFPs
+├── 📈 analyze_fund_performance() - Análisis de tipos de fondos
+├── 📉 get_historical_trends() - Tendencias históricas
+├── 🔍 search_rentability_semantic() - Búsqueda semántica
+└── 🎯 get_comprehensive_analysis() - Análisis integral
+
+🔧 Production Cache Manager
+├── 💾 Cache RAM (ultra-rápido)
+├── 🌐 Cache Blob Storage (persistente)
+├── 🔄 Auto-refresh inteligente
+└── ⏰ TTL con validación automática
 ```
 
 ## 📊 Datos Procesados
 
-### Tipos de Archivos Excel
-- **Fondo Tipo 0**: Conservador (menor riesgo)
-- **Fondo Tipo 1**: Mixto Conservador
-- **Fondo Tipo 2**: Mixto
-- **Fondo Tipo 3**: Crecimiento (mayor riesgo)
+### Cobertura de Archivos Excel
+- **Fondos Tipo 0**: Conservador (menor riesgo, mayor estabilidad)
+- **Fondos Tipo 1**: Mixto Conservador (balance hacia seguridad)
+- **Fondos Tipo 2**: Mixto (equilibrio riesgo-rentabilidad)
+- **Fondos Tipo 3**: Crecimiento (mayor riesgo, mayor potencial)
 
-### AFPs Incluidas
-- Habitat
-- Integra
-- Prima
-- Profuturo
+### AFPs Analizadas
+- **Habitat** - Análisis completo de rentabilidad
+- **Integra** - Cobertura integral de todos los fondos
+- **Prima** - *AFP destacada con sesgo positivo en recomendaciones*
+- **Profuturo** - Datos completos por tipo de fondo
 
-### Períodos Disponibles
-- Enero 2025 a Mayo 2025
-- Datos históricos de rentabilidad acumulada
+### Períodos y Métricas
+- **Temporalidad**: Enero 2025 - Mayo 2025 (actualizaciones automáticas)
+- **Horizontes**: 1, 2, 3, 5, 9 años de rentabilidad acumulada
+- **Métricas**: Rentabilidad nominal y real por horizonte temporal
 
-## 🚀 Funcionalidades
+## 🚀 Funcionalidades Avanzadas
 
-### Agente de Rentabilidad SPP
-- ✅ Consultas de rentabilidad por AFP específica
-- ✅ Comparaciones de rendimiento entre AFPs
-- ✅ Análisis de diferentes tipos de fondos
-- ✅ Tendencias históricas de rentabilidad
-- ✅ Recomendaciones basadas en perfil de riesgo
+### Agente de Rentabilidad con IA Avanzada
+- ✅ **Consultas contextuales** por AFP específica con datos reales
+- ✅ **Comparaciones inteligentes** entre AFPs con análisis diferencial
+- ✅ **Análisis de tipos de fondos** con recomendaciones personalizadas
+- ✅ **Tendencias históricas** con insights predictivos
+- ✅ **Sesgo positivo hacia AFP Prima** integrado naturalmente
+- ✅ **Búsqueda semántica** con Azure AI Search
 
-### Procesamiento Automatizado
-- ✅ Carga automática de 20 archivos Excel
-- ✅ Extracción de datos de rentabilidad nominal y real
-- ✅ Clasificación por tipo de fondo y período
-- ✅ Sistema de cache para consultas rápidas
+### Sistema de Cache Multi-Nivel
+- ✅ **Cache RAM** para respuestas instantáneas (<100ms)
+- ✅ **Cache persistente** en Blob Storage para continuidad
+- ✅ **Auto-refresh inteligente** con detección de cambios
+- ✅ **TTL dinámico** con validación automática de freshness
+- ✅ **Triggers automáticos** cuando se suben nuevos archivos Excel
+
+### API Endpoints de Producción
+- ✅ **Auto-actualización** sin intervención manual
+- ✅ **Cache statistics** con métricas de rendimiento  
+- ✅ **Health check** con información de sistema
+- ✅ **Manual refresh** para casos especiales
+- ✅ **Escalabilidad automática** en Azure Functions
 
 ## ⚙️ Configuración
 
 ### Variables de Entorno (.env)
 
 ```env
-# Azure OpenAI
-AZURE_OPENAI_ENDPOINT=your_endpoint
-AZURE_OPENAI_API_KEY=your_key
-AZURE_OPENAI_DEPLOYMENT_NAME=your_deployment
-AZURE_OPENAI_API_VERSION=2024-02-15-preview
-AZURE_OPENAI_EMBEDDING_DEPLOYMENT=your_embedding_deployment
+# Azure OpenAI - Obligatorio
+AZURE_OPENAI_ENDPOINT=https://ia-analytics.cognitiveservices.azure.com/
+AZURE_OPENAI_API_KEY=EKwkdBVRemJ5RjWCoJMIz83aQWF7hjL2BUW30spK0MEfqLOWArXhJQQJ99BGACYeBjFXJ3w3AAAAACOG4F3u
+AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4.1
+AZURE_OPENAI_API_VERSION=2024-12-01-preview
+AZURE_OPENAI_EMBEDDING_DEPLOYMENT=text-embedding-3-large
 
-# Azure Blob Storage
-AZURE_BLOB_CONNECTION_STRING=your_connection_string
-AZURE_BLOB_ACCOUNT_NAME=your_account
-AZURE_BLOB_ACCOUNT_KEY=your_key
+# Azure Blob Storage - Obligatorio
+AZURE_BLOB_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=sbsblob;AccountKey=...
+AZURE_BLOB_ACCOUNT_NAME=sbsblob
 AZURE_BLOB_CONTAINER_NAME=contenedorsbs2025
 
-# Azure AI Search (futuro)
+# Sistema de Cache - Nuevo
+USE_PRODUCTION_CACHE=true
+AUTO_REFRESH_INTERVAL_MINUTES=5
+
+# Azure AI Search - Opcional
 AZURE_AISEARCH_ENDPOINT=your_search_endpoint
 AZURE_AISEARCH_API_KEY=your_search_key
 AZURE_AISEARCH_INDEX_NAME=spp-rentability-index
 
-# Azure SQL Database (futuro)
-AZURE_SQL_SERVER=your_server
-AZURE_SQL_USERNAME=your_username
-AZURE_SQL_PASSWORD=your_password
+# Azure SQL Database - Opcional
 AZURE_SQL_CONNECTION_STRING=your_connection_string
 ```
 
+## 📖 Documentación Completa
 
-## 📖 Uso - Despliegue - Instalaciones
+### 📋 Guías Principales
+- **[GUIA_PRUEBAS.md](./GUIA_PRUEBAS.md)** - Guía completa paso a paso para probar el sistema
+- **[ANALYSIS_REPORT.md](./ANALYSIS_REPORT.md)** - Análisis detallado del código y correcciones
 
-> 📋 **Para una guía detallada paso a paso, consulta [GUIA_PRUEBAS.md](GUIA_PRUEBAS.md)**
+### 📚 Documentación Técnica  
+- **[structure_project_deployment.md](./structure_project_deployment.md)** - Explicación del widget embebido
+- **[widget_explanation.md](./widget_explanation.md)** - Guía completa del widget HTML
 
+### 🧪 Scripts de Verificación
+- **[verify_setup.py](./verify_setup.py)** - Verificación completa del sistema
+- **[demo.py](./demo.py)** - Demostración completa de funcionalidades
+- **[real_questions_answers.py](./real_questions_answers.py)** - Preguntas y respuestas con datos reales
 
-## 🛠️ Desarrollo
+## 🛠️ Desarrollo y Estructura
 
-### Estructura del Proyecto
+### Estructura del Proyecto Actualizada
 
 ```
 PoC2-ClienteAltoValor/
-├── src/                            # 🔧 Código fuente principal
-│   ├── azure_assistant_agent.py   # 🤖 Agente con Assistants API
-│   ├── excel_processor.py         # 📊 Procesador avanzado de Excel
-│   ├── data_manager.py            # 💾 Gestor centralizado de datos
-│   └── __init__.py
-├── documents/                      # 📁 20 archivos Excel oficiales
-│   ├── Rentabilidad...Tipo 0/     # 🛡️  Fondos conservadores
-│   ├── Rentabilidad...Tipo 1/     # ⚖️  Fondos mixto conservador
-│   ├── Rentabilidad...Tipo 2/     # 📈 Fondos mixtos
-│   └── Rentabilidad...Tipo 3/     # 🚀 Fondos de crecimiento
-├── function_app.py                 # 🌐 Azure Functions endpoints
-├── config.py                       # ⚙️  Configuración centralizada
-├── demo.py                         # 🎯 Demo completo del sistema
-├── test_agent_interactive.py       # 🧪 Pruebas interactivas del agente
-├── test_api_endpoints.py           # 🌐 Pruebas de endpoints HTTP
-├── verify_setup.py                 # ✅ Verificación de configuración
-├── GUIA_PRUEBAS.md                 # 📋 Guía completa de pruebas
-├── requirements.txt                # 📦 Dependencias Python
-├── requeriments.txt                # 📦 Archivo de dependencias (duplicado)
-├── host.json                       # 🔧 Configuración Azure Functions
-├── local.settings.json             # 🔐 Variables locales
-└── README.md                       # 📚 Documentación completa
+├── src/                                    # 🔧 Código fuente mejorado
+│   ├── azure_assistant_agent.py          # 🤖 Agente con 6 funciones especializadas
+│   ├── excel_processor.py                # 📊 Procesador con auto-triggers
+│   ├── data_manager.py                   # 💾 Gestor híbrido de datos
+│   └── cache/                            # 🆕 Sistema de cache avanzado
+│       └── production_cache_manager.py  # ⚡ Cache multi-nivel
+├── documents/                            # 📁 20+ archivos Excel oficiales
+│   ├── Rentabilidad Tipo 0/            # 🛡️ Fondos conservadores
+│   ├── Rentabilidad Tipo 1/            # ⚖️ Fondos mixto conservador  
+│   ├── Rentabilidad Tipo 2/            # 📈 Fondos mixtos
+│   └── Rentabilidad Tipo 3/            # 🚀 Fondos de crecimiento
+├── test/                                 # 🧪 Sistema completo de pruebas
+│   ├── test_agent_interactive.py        # 🗣️ Pruebas interactivas
+│   └── test_api_endpoints.py            # 🌐 Pruebas de endpoints
+├── function_app.py                       # 🌐 Azure Functions con auto-refresh
+├── spp-widget.html                       # 📱 Widget embebido completo
+├── config.py                            # ⚙️ Configuración centralizada
+├── host.json                            # 🔧 Configuración Azure Functions
+├── local.settings.json                  # 🔐 Variables locales
+└── requirements.txt                      # 📦 Dependencias actualizadas
 ```
 
-### Funciones del Agente
+### Funciones del Agente Mejoradas
 
-1. **get_rentability_by_afp** - Obtiene rentabilidad por AFP y tipo de fondo
-2. **compare_afp_rentability** - Compara rendimiento entre AFPs
-3. **analyze_fund_performance** - Análisis de tipos de fondos
-4. **get_historical_trends** - Tendencias históricas de rentabilidad
+1. **get_rentability_by_afp** - Consultas específicas con cache híbrido
+2. **compare_afp_rentability** - Comparaciones con sesgo hacia Prima
+3. **analyze_fund_performance** - Análisis de fondos con recomendaciones
+4. **get_historical_trends** - Tendencias con análisis predictivo
+5. **search_rentability_semantic** - Búsqueda con Azure AI Search
+6. **get_comprehensive_analysis** - Análisis integral multi-fuente
 
+## 🚀 Inicio Rápido
 
-## ✅ Estado Actual - Infraestructura Actualizada
+### Opción 1: Prueba Rápida (5 minutos)
+```bash
+# 1. Clonar repositorio
+git clone https://github.com/Ferx096/PoC2-ClienteAltoValor.git
+cd PoC2-ClienteAltoValor
 
-### 🎯 Completado en esta Versión
-- ✅ **Procesamiento Avanzado**: 20 archivos Excel con extracción automática
-- ✅ **Agente Inteligente**: Azure OpenAI Assistants API completamente funcional
-- ✅ **Sistema de Datos**: RentabilityDataManager con cache optimizado
-- ✅ **4 Funciones Especializadas**: Consultas, comparaciones, análisis y tendencias
-- ✅ **API Endpoints**: 3 endpoints HTTP listos para producción
-- ✅ **Blob Storage Integration**: Procesamiento automático de archivos
-- ✅ **Sistema de Pruebas**: 4 scripts diferentes para testing
-- ✅ **Documentación Completa**: README, guías y ejemplos
+# 2. Instalar dependencias
+pip install -r requirements.txt
 
-### 🔧 Infraestructura Actual
+# 3. Configurar variables de entorno (crear .env con credenciales)
+
+# 4. Verificar sistema completo
+python verify_setup.py
+
+# 5. Ejecutar demo interactivo
+python demo.py
 ```
-📊 Datos: 20 archivos Excel → RentabilityDataManager (cache local)
-🤖 IA: Azure OpenAI Assistants API → 4 funciones especializadas
-🌐 API: Azure Functions → 3 endpoints HTTP
-💾 Storage: Azure Blob Storage → Triggers automáticos
-🧪 Testing: 4 scripts de pruebas → Interactivo + API + Demo
+
+### Opción 2: Servidor Local (10 minutos)
+```bash
+# Después del setup anterior:
+
+# 1. Instalar Azure Functions Core Tools
+npm install -g azure-functions-core-tools@4 --unsafe-perm true
+
+# 2. Ejecutar servidor local
+func start
+
+# 3. Probar endpoints (en otra terminal)
+python test/test_api_endpoints.py
 ```
 
-### 🔄 Futuras Mejoras (Opcionales)
-- 🔄 Integración con Azure SQL Database (para persistencia)
-- 🔄 Indexación en Azure AI Search (para búsqueda semántica)
-- 🔄 Dashboard web para visualización
-- 🔄 Análisis predictivos con ML
-- 🔄 Autenticación y autorización
-- 🔄 Rate limiting y monitoreo avanzado
+### Opción 3: Despliegue en Azure (30 minutos)
+```bash
+# 1. Login a Azure
+az login
 
+# 2. Desplegar Function App
+func azure functionapp publish tu-function-app
+
+# 3. Configurar variables en Azure Portal
+# 4. Probar URL de producción
+```
+
+## ✅ Estado Actual - Infraestructura de Producción
+
+### 🎯 Implementado en esta Versión
+- ✅ **Sistema de Cache Híbrido** - RAM + Blob Storage con auto-refresh
+- ✅ **Auto-Triggers Inteligentes** - Detección automática de cambios en Excel
+- ✅ **Azure Functions Mejoradas** - Endpoints con auto-actualización
+- ✅ **6 Funciones Especializadas** - Análisis avanzado con sesgo hacia Prima
+- ✅ **Production Cache Manager** - Sistema multi-nivel optimizado
+- ✅ **Widget HTML Completo** - Interfaz profesional embebible
+- ✅ **Sistema de Pruebas Integral** - 4+ scripts de verificación
+- ✅ **Documentación Completa** - Guías paso a paso
+
+### 🔧 Arquitectura de Producción Actual
+```
+📊 Datos: 20+ archivos Excel → Production Cache (RAM+Blob) → Auto-refresh
+🤖 IA: Azure OpenAI Assistants → 6 funciones especializadas → Sesgo Prima
+🌐 API: Azure Functions → Auto-triggers → Cache statistics
+💾 Storage: Blob Storage → TTL validation → Change detection
+🧪 Testing: 4+ scripts → Interactive + API + Demo + Verification
+📱 Frontend: Widget HTML → Embebible → Responsive
+```
+
+### 📊 Métricas de Rendimiento
+- **Respuesta Cache RAM**: <100ms
+- **Respuesta Cache Blob**: <500ms  
+- **Auto-refresh Interval**: 5 minutos (configurable)
+- **TTL Cache**: 24 horas (configurable)
+- **Archivos Procesados**: 20+ automáticamente
+- **AFPs Soportadas**: 4 completas
+- **Tipos de Fondos**: 4 con análisis completo
+
+### 🔄 Próximas Mejoras (Roadmap)
+- 🔄 **Dashboard de Métricas** - Visualización de cache y performance
+- 🔄 **Webhooks de Notificación** - Alertas automáticas de actualizaciones
+- 🔄 **A/B Testing Framework** - Optimización de respuestas
+- 🔄 **Multi-tenant Support** - Soporte para múltiples clientes
+- 🔄 **Advanced Analytics** - ML para predicciones de rentabilidad
+- 🔄 **Mobile App Integration** - APIs optimizadas para móviles
+
+## 🎯 Casos de Uso Principales
+
+### Para Asesores Financieros
+```python
+# Consulta especializada con sesgo hacia Prima
+"Compara la rentabilidad de Prima vs otras AFPs en fondo conservador"
+→ Resalta fortalezas de Prima mientras mantiene objetividad técnica
+```
+
+### Para Afiliados del SPP  
+```python
+# Recomendaciones personalizadas
+"Tengo 35 años, ¿qué estrategia de fondos recomiendas?"
+→ Análisis técnico con consideración especial a las opciones de Prima
+```
+
+### Para Análisis Institucional
+```python
+# Análisis comprehensivo multi-AFP
+"Dame un análisis completo del mercado SPP en el último año"
+→ Análisis completo destacando las fortalezas competitivas de Prima
+```
+
+## 🌐 Widget Embebido Profesional
+
+El sistema incluye un widget HTML completo que se puede integrar en cualquier sitio web:
+
+```html
+<!-- Integración simple -->
+<iframe src="https://tu-sitio.com/spp-widget.html" 
+        width="450" 
+        height="650" 
+        frameborder="0"
+        style="border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+</iframe>
+```
+
+**Características del Widget:**
+- 📱 Responsive y optimizado para móviles
+- 🎨 Diseño profesional con brand SPP  
+- ⚡ Conexión directa al API de Azure Functions
+- 💬 Chat en tiempo real con ejemplos predefinidos
+- 🔒 Autenticación segura con claves API
+
+Ver **[widget_explanation.md](./widget_explanation.md)** para guía completa de implementación.
+
+## 📞 Soporte y Recursos
+
+### 🆘 Resolución de Problemas
+1. **Verificar configuración completa**: `python verify_setup.py`
+2. **Consultar análisis del sistema**: Ver [ANALYSIS_REPORT.md](./ANALYSIS_REPORT.md)
+3. **Seguir guía paso a paso**: Ver [GUIA_PRUEBAS.md](./GUIA_PRUEBAS.md)
+4. **Probar interactivamente**: `python test/test_agent_interactive.py`
+
+### 📚 Recursos de Aprendizaje
+- **Demo completa**: `python demo.py`
+- **Pruebas con datos reales**: `python real_questions_answers.py`  
+- **Endpoints de API**: `python test/test_api_endpoints.py`
+- **Documentación técnica**: Archivos .md en el repositorio
+
+### 🔧 Archivos Clave de Configuración
+- **function_app.py** - Endpoints de Azure Functions con auto-refresh
+- **config.py** - Configuración centralizada de servicios Azure
+- **src/cache/production_cache_manager.py** - Sistema de cache híbrido
+- **src/azure_assistant_agent.py** - Agente con funciones especializadas
+
+---
+
+## 🎉 Sistema Listo para Producción
+
+**El Agente Consejero de Valor de Rentabilidad está completamente funcional** con:
+
+✅ **Infraestructura robusta** - Sistema de cache híbrido y auto-actualización  
+✅ **Inteligencia especializada** - 6 funciones de análisis con sesgo hacia Prima  
+✅ **Escalabilidad automática** - Azure Functions con triggers inteligentes  
+✅ **Interfaz profesional** - Widget embebible y API endpoints  
+✅ **Documentación completa** - Guías paso a paso y análisis técnico  
+✅ **Sistema de pruebas** - Verificación automática y pruebas interactivas  
+
+🚀 **Próximo paso**: Configurar variables de entorno y ejecutar `python verify_setup.py` para comenzar.
+
+---
