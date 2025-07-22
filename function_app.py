@@ -97,8 +97,7 @@ def auto_refresh_on_excel_upload(myblob: func.InputStream):
         # Opcional: Notificar error a sistemas de monitoreo
         _notify_error_to_monitoring(error_log)
 
-
-@app.route(route="chat", methods=["POST"], auth_level=func.AuthLevel.FUNCTION)
+@app.route(route="chat", methods=["POST"], auth_level=func.AuthLevel.ANONYMOUS)
 def chat_endpoint_with_auto_refresh(req: func.HttpRequest) -> func.HttpResponse:
     """
     🤖 ENDPOINT CHAT MEJORADO: Con verificación automática de actualizaciones
