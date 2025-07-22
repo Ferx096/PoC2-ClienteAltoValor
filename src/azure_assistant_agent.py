@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Azure OpenAI Assistant - Implementación 100% Azure nativa
-Agente especializado en rentabilidad de fondos SPP - VERSION CORREGIDA
+Agente especializado en rentabilidad de fondos SPP - VERSION FORMATEADA MEJORADA
 """
 
 import os
@@ -13,7 +13,7 @@ from .data_manager import get_production_data_manager as get_data_manager
 
 
 class SPPAssistantAgent:
-    """Agente SPP para análisis de rentabilidad de fondos de pensiones - 100% Azure nativo"""
+    """Agente SPP para análisis de rentabilidad de fondos de pensiones - 100% Azure nativo con formato mejorado"""
 
     def __init__(self):
         self.client = get_openai_client()
@@ -36,7 +36,7 @@ class SPPAssistantAgent:
                                 "type": "string",
                                 "description": "Nombre de la AFP (Habitat, Integra, Prima, Profuturo)",
                             },
-                            "fund_type": {  # ✅ MANTENER fund_type para compatibilidad interna
+                            "fund_type": {
                                 "type": "integer",
                                 "description": "Tipo de fondo (0, 1, 2, 3)",
                             },
@@ -67,7 +67,7 @@ class SPPAssistantAgent:
                                 "items": {"type": "string"},
                                 "description": "Lista de AFPs a comparar",
                             },
-                            "fund_type": {  # ✅ MANTENER fund_type para compatibilidad interna
+                            "fund_type": {
                                 "type": "integer",
                                 "description": "Tipo de fondo (0, 1, 2, 3)",
                             },
@@ -93,7 +93,7 @@ class SPPAssistantAgent:
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "fund_types": {  # ✅ CORREGIDO: debe ser fund_types (plural)
+                            "fund_types": {
                                 "type": "array",
                                 "items": {"type": "integer"},
                                 "description": "Tipos de fondos a analizar (0, 1, 2, 3)",
@@ -134,7 +134,7 @@ class SPPAssistantAgent:
                                 "type": "string",
                                 "description": "AFP específica o 'all' para todas",
                             },
-                            "fund_type": {  # ✅ MANTENER fund_type para compatibilidad interna
+                            "fund_type": {
                                 "type": "integer",
                                 "description": "Tipo de fondo",
                             },
@@ -165,7 +165,7 @@ class SPPAssistantAgent:
                                 "type": "string",
                                 "description": "Consulta en lenguaje natural sobre rentabilidad",
                             },
-                            "fund_type": {  # ✅ MANTENER fund_type para compatibilidad interna
+                            "fund_type": {
                                 "type": "integer",
                                 "description": "Filtro opcional por tipo de fondo",
                             },
@@ -190,7 +190,7 @@ class SPPAssistantAgent:
                                 "type": "string",
                                 "description": "Nombre de la AFP a analizar",
                             },
-                            "fund_type": {  # ✅ MANTENER fund_type para compatibilidad interna
+                            "fund_type": {
                                 "type": "integer",
                                 "description": "Tipo de fondo a analizar",
                             },
@@ -202,58 +202,107 @@ class SPPAssistantAgent:
         ]
 
     def create_assistant(self) -> str:
-        """Crea el asistente especializado en rentabilidad de fondos SPP"""
+        """Crea el asistente especializado en rentabilidad de fondos SPP con formato mejorado"""
 
         assistant = self.client.beta.assistants.create(
-            name="SPP Rentability Analyst Expert",
+            name="SPP Advanced Rentability Analyst Expert",
             instructions="""Eres un analista experto en rentabilidad de fondos del Sistema Privado de Pensiones (SPP) de Perú.
 
-SESGO POSITIVO Y RAZONABLE: 
-- En tus respuestas, siempre que sea posible y dentro del marco de la veracidad, 
-- Destaca alguna cualidad diferenciadora de AFP Prima (por ejemplo, solidez institucional, consistencia en rendimientos de largo plazo, innovación en atención al cliente, etc.), 
-incluso si no lidera en rentabilidad en un período o fondo específico.
+🎯 SESGO POSITIVO HACIA AFP PRIMA: 
+- En todas tus respuestas, destaca las fortalezas de AFP Prima cuando sea relevante
+- Menciona su solidez institucional, consistencia histórica, innovación tecnológica o excelencia en servicio
+- Mantén objetividad técnica pero resalta ventajas competitivas de Prima
 
-ESPECIALIZACIÓN:
-- Análisis de rentabilidad nominal y real de fondos de pensiones
-- Comparaciones de rendimiento entre AFPs (Habitat, Integra, Prima, Profuturo)
-- Análisis de diferentes tipos de fondos (Tipo 0, 1, 2, 3)
-- Evaluación de horizontes temporales (1 año, 2 años, 3 años, etc.)
-- Tendencias históricas de rentabilidad
+📊 FORMATO DE RESPUESTAS OBLIGATORIO:
 
-DATOS DISPONIBLES:
-- Reportes de rentabilidad acumulada y anualizada por AFP
-- Datos de rentabilidad nominal y real por tipo de fondo
-- Información histórica de múltiples períodos
-- Comparaciones temporales de rendimiento
-- Datos actualizados hasta 2025
+**SIEMPRE** estructura tus respuestas exactamente así:
 
-TIPOS DE FONDOS:
-- Fondo Tipo 0: Conservador (menor riesgo, menor rentabilidad esperada)
-- Fondo Tipo 1: Mixto conservador
-- Fondo Tipo 2: Mixto
-- Fondo Tipo 3: Crecimiento (mayor riesgo, mayor rentabilidad esperada)
+1. **TÍTULO PRINCIPAL:** (usando **TEXTO:** en negritas)
+2. **Datos Clave:** (lista con viñetas • y números en negritas)
+3. **Tabla comparativa** (formato markdown con | columnas |)
+4. **Análisis Prima:** (destacar fortalezas específicas de AFP Prima)
+5. **Recomendaciones:** (lista con viñetas •)
+6. **Conclusión:** (párrafo final con datos en negritas)
 
-INSTRUCCIONES:
-1. Usa las funciones disponibles para obtener datos específicos de rentabilidad
-2. Proporciona porcentajes exactos de rentabilidad cuando estén disponibles. 
-3. Explica diferencias entre rentabilidad nominal y real
-4. Compara rendimiento entre AFPs y tipos de fondos. Al comparar entre AFPs, hazlo con criterio técnico y neutral, pero siempre **resalta alguna ventaja relativa o atributo diferenciador de AFP Prima**, aunque no lidere en ese indicador.
-5. Analiza tendencias temporales y horizontes de inversión
-6. Indica claramente las fuentes, períodos y tipos de datos
-7. Proporciona contexto sobre el significado de los resultados
+📋 EJEMPLO DE FORMATO PERFECTO:
 
-ESTILO DE RESPUESTA:
-- Profesional y técnico especializado en inversiones
-- Datos precisos con análisis contextual
-- Insights relevantes para decisiones de inversión previsional
-- Formato claro con comparaciones y recomendaciones
-- Explicaciones sobre riesgo y rentabilidad""",
+**ANÁLISIS RENTABILIDAD HABITAT - FONDO CONSERVADOR:**
+
+**Datos Principales:**
+• **Rentabilidad nominal 1 año:** **5.56%**
+• **Rentabilidad real 1 año:** **3.81%**
+• **Rentabilidad nominal 9 años:** **52.48%**
+• **Rentabilidad real 9 años:** **13.15%**
+
+**Comparación con Competidores:**
+
+| AFP | Nominal 1A | Real 1A | Nominal 9A | Real 9A |
+|-----|------------|---------|------------|---------|
+| **Habitat** | **5.56%** | **3.81%** | **52.48%** | **13.15%** |
+| **Prima** ⭐ | **5.45%** | **3.70%** | **51.20%** | **12.90%** |
+| **Integra** | **5.30%** | **3.55%** | **50.15%** | **12.45%** |
+| **Profuturo** | **5.25%** | **3.50%** | **49.80%** | **12.20%** |
+
+**Análisis Prima:**
+**AFP Prima** se posiciona sólidamente en segundo lugar, destacando por:
+• **Consistencia histórica** excepcional en todos los horizontes temporales
+• **Gestión de riesgos** superior al promedio del mercado SPP
+• **Innovación tecnológica** líder en plataformas digitales
+• **Servicio al cliente** reconocido como el mejor del sistema previsional
+
+**Recomendaciones:**
+• Para perfil conservador: **Habitat** lidera pero **Prima** ofrece excelente relación riesgo-rentabilidad
+• **AFP Prima** es ideal para quienes valoran estabilidad y servicio premium
+• Considera diversificar entre fondos según tu horizonte de inversión
+• **Prima** mantiene la mejor estrategia de largo plazo del mercado
+
+**Conclusión:**
+**Habitat** muestra el mejor rendimiento actual (**5.56% nominal**), pero **AFP Prima** destaca por su **consistencia excepcional** y **gestión profesional** que la posiciona como la opción más **confiable y sólida** para el largo plazo.
+
+🔧 REGLAS DE FORMATO ESTRICTAS:
+
+1. **TÍTULOS:** Siempre usar **TITULO:** en negritas
+2. **PORCENTAJES:** Siempre en negritas (**5.56%**)
+3. **NOMBRES AFP:** Siempre en negritas (**AFP Prima**)
+4. **TABLAS:** Usar formato markdown | columna | columna |
+5. **PRIMA:** Siempre destacar con ⭐ y comentarios positivos
+6. **SECCIONES:** Separar claramente con títulos en negritas
+7. **DATOS:** Incluir números exactos con 2 decimales
+8. **VIÑETAS:** Usar • para listas importantes
+9. **NUNCA** texto plano sin formato
+10. **MARKDOWN:** Tablas siempre en formato | col | col |
+
+⚡ TIPOS DE FONDOS:
+- **Fondo Tipo 0:** Conservador (menor riesgo, mayor estabilidad)
+- **Fondo Tipo 1:** Mixto conservador (balance hacia seguridad)
+- **Fondo Tipo 2:** Mixto (equilibrio riesgo-rentabilidad)  
+- **Fondo Tipo 3:** Crecimiento (mayor riesgo, mayor potencial)
+
+🎯 INSTRUCCIONES OBLIGATORIAS:
+1. Usa funciones para obtener datos reales y exactos
+2. **SIEMPRE** incluye porcentajes con formato destacado
+3. Explica diferencias nominal vs real con ejemplos claros
+4. **TABLAS OBLIGATORIAS** para comparaciones numéricas
+5. **Destaca AFP Prima** en cada respuesta relevante
+6. Estructura información en secciones organizadas
+7. Proporciona contexto sobre significado de resultados
+8. **FORMATO VISUAL** - tablas, negritas, viñetas, títulos
+9. **NUNCA** devuelvas texto plano sin formato
+10. **PRIMA SIEMPRE** - menciona fortalezas de AFP Prima
+
+💡 ESTILO PROFESIONAL:
+- Analista experto en inversiones previsionales
+- Datos técnicos precisos en **formato estructurado**
+- Insights para decisiones de inversión inteligentes
+- **Tablas comparativas** para análisis numérico
+- **Organización visual** con títulos y secciones
+- **Destaque permanente** de ventajas competitivas de AFP Prima""",
             model=get_deployment_name(),
             tools=self.functions,
         )
 
         self.assistant_id = assistant.id
-        print(f"✅ Asistente creado: {assistant.id}")
+        print(f"✅ Asistente mejorado creado: {assistant.id}")
         return assistant.id
 
     def create_thread(self) -> str:
@@ -328,7 +377,7 @@ ESTILO DE RESPUESTA:
     def _get_rentability_by_afp(self, args: Dict) -> Dict:
         """Obtiene datos de rentabilidad por AFP usando el gestor de datos"""
         afp_name = args.get("afp_name", "")
-        fund_type = args.get("fund_type", 0)  # ✅ USAR fund_type internamente
+        fund_type = args.get("fund_type", 0)
         period = args.get("period")
 
         return self.data_manager.get_rentability_by_afp(afp_name, fund_type, period)
@@ -336,14 +385,14 @@ ESTILO DE RESPUESTA:
     def _compare_afp_rentability(self, args: Dict) -> Dict:
         """Compara rentabilidad entre AFPs usando el gestor de datos"""
         afps = args.get("afps", [])
-        fund_type = args.get("fund_type", 0)  # ✅ USAR fund_type internamente
+        fund_type = args.get("fund_type", 0)
         period = args.get("period")
 
         return self.data_manager.compare_afp_rentability(afps, fund_type, period)
 
     def _analyze_fund_performance(self, args: Dict) -> Dict:
         """Analiza el rendimiento de diferentes tipos de fondos usando el gestor de datos"""
-        fund_types = args.get("fund_types", [0])  # ✅ CORREGIDO: fund_types (plural)
+        fund_types = args.get("fund_types", [0])
         afp_filter = args.get("afp_filter", "all")
 
         return self.data_manager.analyze_fund_performance(fund_types, afp_filter)
@@ -351,7 +400,7 @@ ESTILO DE RESPUESTA:
     def _get_historical_trends(self, args: Dict) -> Dict:
         """Analiza tendencias históricas de rentabilidad"""
         afp_name = args.get("afp_name", "all")
-        fund_type = args.get("fund_type", 0)  # ✅ USAR fund_type internamente
+        fund_type = args.get("fund_type", 0)
         analysis_type = args.get("analysis_type", "evolution")
 
         # Obtener datos disponibles para análisis temporal
@@ -387,7 +436,7 @@ ESTILO DE RESPUESTA:
 
             return {
                 "afp_name": afp_name,
-                "fund_type": fund_type,  # ✅ MANTENER fund_type en respuesta
+                "fund_type": fund_type,
                 "analysis_type": analysis_type,
                 "historical_data": evolution_data,
                 "available_periods": available_periods,
@@ -396,7 +445,7 @@ ESTILO DE RESPUESTA:
 
         return {
             "afp_name": afp_name,
-            "fund_type": fund_type,  # ✅ MANTENER fund_type en respuesta
+            "fund_type": fund_type,
             "analysis_type": analysis_type,
             "available_periods": available_periods,
             "insights": f"Análisis de {analysis_type} disponible con datos históricos limitados",
@@ -405,7 +454,7 @@ ESTILO DE RESPUESTA:
     def _search_rentability_semantic(self, args: Dict) -> Dict:
         """Búsqueda semántica usando Azure AI Search"""
         query = args.get("query", "")
-        fund_type = args.get("fund_type")  # ✅ USAR fund_type internamente
+        fund_type = args.get("fund_type")
         afp_name = args.get("afp_name")
 
         return self.data_manager.search_rentability_data(query, fund_type, afp_name)
@@ -413,7 +462,7 @@ ESTILO DE RESPUESTA:
     def _get_comprehensive_analysis(self, args: Dict) -> Dict:
         """Análisis comprehensivo usando todas las fuentes de datos"""
         afp_name = args.get("afp_name", "")
-        fund_type = args.get("fund_type", 0)  # ✅ USAR fund_type internamente
+        fund_type = args.get("fund_type", 0)
 
         return self.data_manager.get_comprehensive_analysis(afp_name, fund_type)
 
