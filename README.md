@@ -46,7 +46,6 @@ Este proyecto es un sistema inteligente de análisis de rentabilidad de fondos d
 PoC2-ClienteAltoValor/
 ├── 📋 Documentación Principal
 │   ├── README.md (guía completa)
-│   ├── ANALYSIS_REPORT.md (análisis técnico)
 │   ├── GUIA_PRUEBAS.md (guía paso a paso)
 │   └── widget_explanation.md (explicación del widget)
 │
