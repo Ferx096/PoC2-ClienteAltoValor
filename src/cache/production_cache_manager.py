@@ -305,7 +305,11 @@ class AutoUpdatingDataManager:
             self.last_auto_check = now
 
     def get_rentability_by_afp(
-        self, afp_name: str, fund_type: int = 0, period: str = None
+        self,
+        afp_name: str,
+        fund_type: int = 0,
+        period: str = None,
+        section_type: str = "both",
     ) -> Dict:
         """Obtiene rentabilidad con auto-refresh automático"""
         # Auto-refresh check

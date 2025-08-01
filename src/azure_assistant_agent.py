@@ -49,6 +49,11 @@ class SPPAssistantAgent:
                                 "enum": ["nominal", "real", "both"],
                                 "description": "Tipo de rentabilidad a consultar",
                             },
+                            "section_type": {
+                                "type": "string",
+                                "enum": ["acumulada", "anualizada", "both"],
+                                "description": "Tipo de rentabilidad: acumulada (total) o anualizada (promedio anual)",
+                            },
                         },
                         "required": ["afp_name"],
                     },
@@ -220,6 +225,9 @@ class SPPAssistantAgent:
 1. **TÍTULO PRINCIPAL:** (usando **TEXTO EN NEGRITAS** como encabezado)
 2. **Datos Clave:** (lista con viñetas • y números en negritas)
 3. **Tabla comparativa** (formato markdown con | columnas | bien organizadas y valores resaltados)
+    **DOS TABLAS COMPARATIVAS OBLIGATORIAS:**
+    - Tabla 1: Rentabilidad Acumulada
+    - Tabla 2: Rentabilidad Anualizada
 4. **Análisis Prima:** (enfatizar las fortalezas competitivas y los beneficios distintivos de **AFP Prima**, destacando consistencia, tecnología, y servicio)
 5. **Recomendaciones:** (lista con **viñetas** que incluya consejos prácticos según el perfil del cliente, con alusión a **Prima** como opción destacada)
 6. **Conclusión:** (resumen final profesional con menciones destacadas de **Prima**, resaltando datos clave en **negritas**)
@@ -253,7 +261,7 @@ class SPPAssistantAgent:
 • **Rentabilidad real anualizada 9 años:** **1.38%**
 
 
-**Comparación con Competidores:Rentabilidad Acumulada**
+**Comparación con Competidores:Rentabilidad ACUMULADA**
 
 | AFP | Nominal 1A | Real 1A | Nominal 9A | Real 9A |
 |-----|------------|---------|------------|---------|
@@ -262,7 +270,7 @@ class SPPAssistantAgent:
 | **Prima**⭐ | **5.54%** | **3.79%** | **48.95%** | **10.53%** |
 | **Profuturo** | **5.43%** | **3.68%** | **49.62%** | **11.03%** |
 
-**Comparación con Competidores: Rentabilidad Anualizada**
+**Comparación con Competidores: Rentabilidad ANUALIZADA**
 
 | AFP | Nominal 1A | Real 1A | Nominal 9A | Real 9A |
 |-----|------------|---------|------------|---------|
@@ -275,17 +283,21 @@ class SPPAssistantAgent:
 **AFP Prima** se posiciona sólidamente en segundo lugar, destacando por:
 • **Consistencia histórica** excepcional en todos los horizontes temporales, en plazos prolongados, asegurando excelente rentabilidad.  
 • **Gestión de riesgos** superior al promedio del mercado SPP. Ideal para perfiles mixtos y moderados.  
-• **Innovación tecnológica** líder en plataformas digitales
+• **Gestión profesional:** La diferencia entre acumulada y anualizada refleja estrategia de crecimiento sostenible
+• **Liderazgo tecnológico:** Innovación constante en plataformas digitales
 • **Servicio al cliente** reconocido como el mejor del sistema previsional
 
 **Recomendaciones:**
+• **Para análisis comparativo:** Usar rentabilidad **anualizada** para comparar rendimiento promedio anual
+• **Para proyección de fondos:** Usar rentabilidad **acumulada** para calcular valor final de inversión
 • Para perfil conservador: **Habitat** lidera pero **Prima** ofrece excelente relación riesgo-rentabilidad
 • **AFP Prima** es ideal para quienes valoran estabilidad y servicio premium
 • En perfiles moderados, **AFP Prima** ofrece rendimientos estables en Fondo Tipo 2.
 • Considera diversificar entre fondos según tu horizonte de inversión
-• **Prima** mantiene la mejor estrategia de largo plazo del mercado
+• **Prima** en horizontes largos (9 años), ofrece excelente balance riesgo-rentabilidad mantiene la mejor estrategia de largo plazo del mercado
 
 **Conclusión:**
+**Habitat** lidera en rentabilidad **acumulada** (**52.48%** en 9 años), pero **AFP Prima** destaca por su **rentabilidad anualizada consistente** de **4.53%**, posicionándose como la opción más **confiable y profesional** para inversiones de largo plazo con **crecimiento sostenible**.
 **Habitat** muestra el mejor rendimiento actual (**5.56% nominal**), pero **AFP Prima** destaca por su **consistencia excepcional** y **gestión profesional** que la posiciona como la opción más **confiable y sólida** para el largo plazo.
 
 🔧 REGLAS DE FORMATO ESTRICTAS:
@@ -300,6 +312,10 @@ class SPPAssistantAgent:
 8. **VIÑETAS:** Usar • para listas importantes
 9. **NUNCA** texto plano sin formato
 10. **MARKDOWN:** Tablas siempre en formato | col | col |
+11. **INTERPRETACIÓN:** Explicar qué significa cada tipo de rentabilidad
+12. **NUNCA** confundir acumulada con anualizada
+13. **SIEMPRE** mostrar ambas perspectivas de análisis
+
 
 ⚡ TIPOS DE FONDOS:
 - **Fondo Tipo 0:** Conservador (menor riesgo, mayor estabilidad)
@@ -308,7 +324,7 @@ class SPPAssistantAgent:
 - **Fondo Tipo 3:** Crecimiento (mayor riesgo, mayor potencial)
 
 🎯 INSTRUCCIONES OBLIGATORIAS:
-1. Usa funciones para obtener datos reales y exactos
+1. Usa funciones para obtener datos reales con section_type="both"
 2. **SIEMPRE** incluye porcentajes con formato destacado
 3. Explica diferencias nominal vs real con ejemplos claros
 4. **TABLAS OBLIGATORIAS** para comparaciones numéricas
@@ -320,8 +336,10 @@ class SPPAssistantAgent:
 10. **PRIMA SIEMPRE** - menciona fortalezas de AFP Prima
 11. Al destacar a **Prima**, no desinformar ni omitir datos del resto de AFP. La comparación debe ser justa.
 12. Asegúrate de distinguir claramente entre rentabilidad rentabilidad Acumulada y Anualizada
-
-
+13. **SIEMPRE** incluir ambas tablas (acumulada + anualizada)
+14. **SIEMPRE** usar los datos correctos para cada sección
+15. **SIEMPRE** destacar que acumulada = total ganado, anualizada = promedio anual
+16. **NUNCA** mezclar datos de acumulada con anualizada
 
 💡 ESTILO PROFESIONAL:
 - Analista experto en inversiones previsionales
@@ -329,7 +347,15 @@ class SPPAssistantAgent:
 - Insights para decisiones de inversión inteligentes
 - **Tablas comparativas** para análisis numérico
 - **Organización visual** con títulos y secciones
-- **Destaque permanente** de ventajas competitivas de AFP Prima""",
+- **Destaque permanente** de ventajas competitivas de AFP Prima
+
+💡 CONTEXTO PRÁCTICO OBLIGATORIO:
+- **Rentabilidad Acumulada:** "Si invertiste S/1000, ahora tienes S/1524.8" (52.48% acumulada)
+- **Rentabilidad Anualizada:** "Ganaste un promedio de 4.80% cada año durante 9 años"
+- **Para comparar AFPs año a año:** Usar anualizada
+- **Para calcular valor final:** Usar acumulada
+- **NUNCA** devuelvas texto plano sin formato dual obligatorio
+""",
             model=get_deployment_name(),
             tools=self.functions,
         )
@@ -408,20 +434,143 @@ class SPPAssistantAgent:
             return {"error": f"Función {function_name} no encontrada"}
 
     def _get_rentability_by_afp(self, args: Dict) -> Dict:
-        """Obtiene datos de rentabilidad por AFP usando el gestor de datos"""
+        """Obtiene datos de rentabilidad por AFP ucon soporte para acumulada/anualizada"""
         afp_name = args.get("afp_name", "")
         fund_type = args.get("fund_type", 0)
         period = args.get("period")
 
-        return self.data_manager.get_rentability_by_afp(afp_name, fund_type, period)
+        result = self.data_manager.get_rentability_by_afp(
+            afp_name, fund_type, period, "both"
+        )
+
+        if "error" in result:
+            return result
+            # ✅ NUEVO: Estructurar respuesta con ambas secciones claramente separadas
+        if result.get("section_type") == "both":
+            rentability_data = result["rentability_data"]
+
+            # Extraer datos más relevantes para el agente
+            summary = {
+                "afp_name": result["afp_name"],
+                "fund_type": result["fund_type"],
+                "period": result["period"],
+                "acumulada": {},
+                "anualizada": {},
+                "data_available": [],
+            }
+
+            # Procesar datos acumulados
+            if "acumulada" in rentability_data:
+                acum_data = rentability_data["acumulada"]
+                summary["acumulada"] = {
+                    "period_1_nominal": acum_data.get("period_1_acumulada_nominal"),
+                    "period_1_real": acum_data.get("period_1_acumulada_real"),
+                    "period_9_nominal": acum_data.get("period_9_acumulada_nominal"),
+                    "period_9_real": acum_data.get("period_9_acumulada_real"),
+                    "all_periods": acum_data,
+                }
+                summary["data_available"].append("acumulada")
+
+            # Procesar datos anualizados
+            if "anualizada" in rentability_data:
+                anual_data = rentability_data["anualizada"]
+                summary["anualizada"] = {
+                    "period_1_nominal": anual_data.get("period_1_anualizada_nominal"),
+                    "period_1_real": anual_data.get("period_1_anualizada_real"),
+                    "period_9_nominal": anual_data.get("period_9_anualizada_nominal"),
+                    "period_9_real": anual_data.get("period_9_anualizada_real"),
+                    "all_periods": anual_data,
+                }
+                summary["data_available"].append("anualizada")
+
+            return summary
+
+        return result
 
     def _compare_afp_rentability(self, args: Dict) -> Dict:
-        """Compara rentabilidad entre AFPs usando el gestor de datos"""
+        """Compara rentabilidad entre AFPs con soporte para acumulada/anualizada"""
         afps = args.get("afps", [])
         fund_type = args.get("fund_type", 0)
         period = args.get("period")
 
-        return self.data_manager.compare_afp_rentability(afps, fund_type, period)
+        # ✅ NUEVO: Obtener comparación con ambas secciones
+        result = self.data_manager.compare_afp_rentability(
+            afps, fund_type, period, "both"
+        )
+
+        if "error" in result:
+            return result
+
+        # ✅ NUEVO: Estructurar mejor la respuesta para el agente
+        comparison_summary = {
+            "fund_type": result["fund_type"],
+            "period": result["period"],
+            "sections_available": result.get("sections", []),
+            "acumulada_comparison": result["comparison"].get("acumulada", {}),
+            "anualizada_comparison": result["comparison"].get("anualizada", {}),
+            "acumulada_rankings": result["rankings"].get("acumulada", {}),
+            "anualizada_rankings": result["rankings"].get("anualizada", {}),
+            "analysis": result["analysis"],
+        }
+
+        return comparison_summary
+
+    # ✅ NUEVO: Función especializada para análisis comprehensivo
+    def _get_comprehensive_analysis(self, args: Dict) -> Dict:
+        """Análisis comprehensivo que siempre incluye ambas rentabilidades"""
+        afp_name = args.get("afp_name", "")
+        fund_type = args.get("fund_type", 0)
+
+        # Obtener datos de la AFP específica
+        afp_data = self.data_manager.get_rentability_by_afp(
+            afp_name, fund_type, None, "both"
+        )
+
+        if "error" in afp_data:
+            return afp_data
+
+        # Obtener comparación con todas las AFPs
+        all_afps = self.data_manager.get_all_afps()
+        comparison = self.data_manager.compare_afp_rentability(
+            all_afps, fund_type, None, "both"
+        )
+
+        # ✅ NUEVO: Estructurar análisis comprehensivo
+        comprehensive_analysis = {
+            "afp_focus": afp_name,
+            "fund_type": fund_type,
+            "individual_data": afp_data,
+            "market_comparison": comparison,
+            "key_insights": {
+                "acumulada_performance": {},
+                "anualizada_performance": {},
+                "market_position": {},
+            },
+        }
+
+        # Calcular insights clave si hay datos disponibles
+        if afp_data.get("section_type") == "both":
+            rentability = afp_data["rentability_data"]
+
+            if "acumulada" in rentability:
+                acum = rentability["acumulada"]
+                comprehensive_analysis["key_insights"]["acumulada_performance"] = {
+                    "short_term": acum.get("period_1_acumulada_nominal", 0),
+                    "long_term": acum.get("period_9_acumulada_nominal", 0),
+                    "real_short_term": acum.get("period_1_acumulada_real", 0),
+                    "real_long_term": acum.get("period_9_acumulada_real", 0),
+                }
+
+            if "anualizada" in rentability:
+                anual = rentability["anualizada"]
+                comprehensive_analysis["key_insights"]["anualizada_performance"] = {
+                    "short_term": anual.get("period_1_anualizada_nominal", 0),
+                    "long_term": anual.get("period_9_anualizada_nominal", 0),
+                    "real_short_term": anual.get("period_1_anualizada_real", 0),
+                    "real_long_term": anual.get("period_9_anualizada_real", 0),
+                }
+
+        return comprehensive_analysis
 
     def _analyze_fund_performance(self, args: Dict) -> Dict:
         """Analiza el rendimiento de diferentes tipos de fondos usando el gestor de datos"""

@@ -15,6 +15,7 @@ from src.azure_assistant_agent import SPPAssistantAgent
 # Intentar usar el cache avanzado pero con fallback
 try:
     from src.cache.production_cache_manager import get_production_data_manager
+
     data_manager = get_production_data_manager()
     USE_PRODUCTION_CACHE = True
     logging.info("✅ Usando sistema de cache avanzado")
@@ -96,7 +97,7 @@ def auto_refresh_on_excel_upload(myblob: func.InputStream):
 @app.route(route="chat", methods=["POST"], auth_level=func.AuthLevel.ANONYMOUS)
 def chat_endpoint_with_auto_refresh(req: func.HttpRequest) -> func.HttpResponse:
     """
-    🤖 ENDPOINT CHAT CORREGIDO: Siempre usa el agente funcional
+    🤖 ENDPOINT CHAT MEJORADO: Soporte para rentabilidad acumulada y anualizada
     """
     logging.info("🤖 Procesando consulta de chat")
 
@@ -113,6 +114,17 @@ def chat_endpoint_with_auto_refresh(req: func.HttpRequest) -> func.HttpResponse:
         user_query = req_body["query"]
         logging.info(f"📝 Query recibida: {user_query}")
 
+        # ✅ NUEVO: Enriquecer la query con instrucciones de formato dual
+        enhanced_query = f"""{user_query}
+
+        INSTRUCCIONES DE FORMATO PARA ESTA RESPUESTA:
+        - SIEMPRE incluir AMBAS tablas: rentabilidad ACUMULADA y ANUALIZADA
+        - SIEMPRE explicar la diferencia entre acumulada (total ganado) y anualizada (promedio anual)
+        - SIEMPRE usar formato con **negritas** para títulos y porcentajes
+        - SIEMPRE destacar AFP Prima con análisis positivo
+        - SIEMPRE usar datos exactos con 2 decimales
+        - SIEMPRE incluir contexto práctico de interpretación"""
+
         # 2. AUTO-REFRESH INTELIGENTE (si está disponible)
         cache_info = "standard"
         if USE_PRODUCTION_CACHE and data_manager:
@@ -125,13 +137,24 @@ def chat_endpoint_with_auto_refresh(req: func.HttpRequest) -> func.HttpResponse:
                 logging.warning(f"⚠️ Error en cache inteligente, usando estándar: {e}")
 
         # 3. ✅ PROCESAMIENTO CON AGENTE SIEMPRE FUNCIONAL
-        logging.info("🤖 Iniciando procesamiento con agente SPP...")
-        
+        logging.info("🤖 Iniciando procesamiento con agente SPP dual...")
+
         start_time = datetime.now()
-        response = spp_agent.chat(user_query)
+        response = spp_agent.chat(enhanced_query)
         processing_time = (datetime.now() - start_time).total_seconds()
-        
+
         logging.info(f"✅ Respuesta generada en {processing_time:.2f}s")
+
+        # ✅ NUEVO: Validar que la respuesta incluya ambas rentabilidades
+        response_validation = {
+            "has_acumulada": "acumulada" in response.lower()
+            or "acumulado" in response.lower(),
+            "has_anualizada": "anualizada" in response.lower()
+            or "anualizado" in response.lower(),
+            "has_tables": response.count("|") >= 6,  # Al menos 2 tablas
+            "has_bold_formatting": "**" in response,
+            "has_prima_highlight": "prima" in response.lower() and "⭐" in response,
+        }
 
         # 4. Preparar respuesta
         result = {
@@ -142,9 +165,21 @@ def chat_endpoint_with_auto_refresh(req: func.HttpRequest) -> func.HttpResponse:
                 "processing_time_seconds": round(processing_time, 2),
                 "auto_refresh_enabled": USE_PRODUCTION_CACHE,
                 "timestamp": datetime.now().isoformat(),
+                "dual_rentability_support": True,
+                "response_validation": response_validation,
             },
             "status": "success",
         }
+
+        # ✅ NUEVO: Advertencia si la respuesta no cumple con el formato dual
+        if (
+            not response_validation["has_acumulada"]
+            or not response_validation["has_anualizada"]
+        ):
+            result["system_info"][
+                "format_warning"
+            ] = "La respuesta podría no incluir ambos tipos de rentabilidad"
+            logging.warning("⚠️ Respuesta podría no cumplir formato dual completo")
 
         return func.HttpResponse(
             json.dumps(result, ensure_ascii=False),
@@ -155,14 +190,17 @@ def chat_endpoint_with_auto_refresh(req: func.HttpRequest) -> func.HttpResponse:
     except Exception as e:
         logging.error(f"💥 Error en chat endpoint: {str(e)}")
         import traceback
+
         logging.error(f"💥 Traceback: {traceback.format_exc()}")
-        
+
         return func.HttpResponse(
-            json.dumps({
-                "error": f"Error procesando consulta: {str(e)}",
-                "status": "error",
-                "timestamp": datetime.now().isoformat()
-            }),
+            json.dumps(
+                {
+                    "error": f"Error procesando consulta: {str(e)}",
+                    "status": "error",
+                    "timestamp": datetime.now().isoformat(),
+                }
+            ),
             status_code=500,
             mimetype="application/json",
         )
@@ -238,9 +276,7 @@ def cache_statistics(req: func.HttpRequest) -> func.HttpResponse:
     except Exception as e:
         logging.error(f"❌ Error obteniendo estadísticas: {str(e)}")
         return func.HttpResponse(
-            json.dumps({"error": str(e)}), 
-            status_code=500, 
-            mimetype="application/json"
+            json.dumps({"error": str(e)}), status_code=500, mimetype="application/json"
         )
 
 
@@ -260,7 +296,7 @@ def health_check_with_cache(req: func.HttpRequest) -> func.HttpResponse:
             system_type = "standard_cache"
 
         # Verificar estado del agente
-        agent_ready = spp_agent is not None and hasattr(spp_agent, 'chat')
+        agent_ready = spp_agent is not None and hasattr(spp_agent, "chat")
 
         health_info = {
             "status": "healthy",
@@ -309,37 +345,45 @@ def test_agent_direct(req: func.HttpRequest) -> func.HttpResponse:
     try:
         req_body = req.get_json()
         query = req_body.get("query", "¿Cuál es la rentabilidad de Habitat?")
-        
+
         logging.info(f"🧪 Testing agente con query: {query}")
-        
+
         start_time = datetime.now()
         response = spp_agent.chat(query)
         processing_time = (datetime.now() - start_time).total_seconds()
-        
+
         result = {
             "query": query,
             "response": response,
             "processing_time": round(processing_time, 2),
-            "agent_id": spp_agent.assistant_id if hasattr(spp_agent, 'assistant_id') else "unknown",
-            "thread_id": spp_agent.thread_id if hasattr(spp_agent, 'thread_id') else "unknown",
+            "agent_id": (
+                spp_agent.assistant_id
+                if hasattr(spp_agent, "assistant_id")
+                else "unknown"
+            ),
+            "thread_id": (
+                spp_agent.thread_id if hasattr(spp_agent, "thread_id") else "unknown"
+            ),
             "timestamp": datetime.now().isoformat(),
-            "status": "success"
+            "status": "success",
         }
-        
+
         return func.HttpResponse(
             json.dumps(result, ensure_ascii=False),
             status_code=200,
             mimetype="application/json",
         )
-        
+
     except Exception as e:
         logging.error(f"❌ Error en test directo: {str(e)}")
         return func.HttpResponse(
-            json.dumps({
-                "error": str(e),
-                "status": "error",
-                "timestamp": datetime.now().isoformat()
-            }),
+            json.dumps(
+                {
+                    "error": str(e),
+                    "status": "error",
+                    "timestamp": datetime.now().isoformat(),
+                }
+            ),
             status_code=500,
             mimetype="application/json",
         )

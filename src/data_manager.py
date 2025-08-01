@@ -141,13 +141,29 @@ class RentabilityDataManager:
         }
 
     def get_rentability_by_afp(
-        self, afp_name: str, fund_type: int = 0, period: str = None
+        self,
+        afp_name: str,
+        fund_type: int = 0,
+        period: str = None,
+        section_type: str = "both",
     ) -> Dict:
-        """Obtiene datos de rentabilidad por AFP- Prioriza Azure SQL, luego cache"""
+        """
+            Obtiene datos de rentabilidad por AFP con soporte para acumulada/anualizada
+        MANTIENE PRIORIZACIÓN: 1. Azure SQL, 2. Cache local
+
+        Args:
+            afp_name: Nombre de la AFP
+            fund_type: Tipo de fondo (0, 1, 2, 3)
+            period: Período específico
+            section_type: "acumulada", "anualizada", o "both" (ambas)
+
+        """
         afp_name = afp_name.lower()
 
         # Intentar obtener desde Azure SQL primero
-        sql_result = self._get_rentability_from_sql(afp_name, fund_type, period)
+        sql_result = self._get_rentability_from_sql(
+            afp_name, fund_type, period, section_type
+        )
         if sql_result and "error" not in sql_result:
             return sql_result
 
@@ -170,59 +186,124 @@ class RentabilityDataManager:
 
         data = self.data_cache[key]["rentability_data"]
 
-        # Buscar datos de la AFP específica
+        # ✅ NUEVO: Separar datos por sección MANTENIENDO la lógica original
+        acumulada_data = None
+        anualizada_data = None
+
+        # Buscar datos de la AFP específica en ambas secciones
         for afp_data in data.get("afp_data", []):
             if afp_data["afp_name"].lower() == afp_name:
-                return {
-                    "afp_name": afp_data["afp_name"],
-                    "fund_type": fund_type,
-                    "period": period,
-                    "rentability_data": afp_data["rentability_data"],
-                    "periods_available": data.get("periods_available", []),
-                    "data_source": f"Archivo oficial SPP - {period}",
-                }
+                section = afp_data.get("section_type", "unknown")
+                if section == "acumulada":
+                    acumulada_data = afp_data["rentability_data"]
+                elif section == "anualizada":
+                    anualizada_data = afp_data["rentability_data"]
+                elif section == "unknown":
+                    # ✅ COMPATIBILIDAD: Si no tiene section_type, asumir que son datos del formato anterior
+                    # En este caso, podrían ser datos acumulados (formato original)
+                    # ✅ MEJORA: Más inteligente la detección de compatibilidad
+                    rentability_keys = afp_data["rentability_data"].keys()
 
-        return {"error": f"AFP {afp_name} no encontrada en los datos"}
+                    # Si las claves contienen "_acumulada_" o "_anualizada_", es formato nuevo
+                    if any("_acumulada_" in key for key in rentability_keys):
+                        if any("_acumulada_" in key for key in rentability_keys):
+                            acumulada_data = {
+                                k: v
+                                for k, v in afp_data["rentability_data"].items()
+                                if "_acumulada_" in k
+                            }
+                        if any("_anualizada_" in key for key in rentability_keys):
+                            anualizada_data = {
+                                k: v
+                                for k, v in afp_data["rentability_data"].items()
+                                if "_anualizada_" in k
+                            }
+                    else:
+                        # Formato anterior - asumir que son datos acumulados
+                        acumulada_data = afp_data["rentability_data"]
+                        logging.info(
+                            f"Datos de {afp_name} en formato anterior, asumiendo acumulada"
+                        )
+
+        # ✅ MANTENER: Estructura de respuesta similar al original
+        result = {
+            "afp_name": (
+                afp_data["afp_name"] if "afp_data" in locals() else afp_name.title()
+            ),
+            "fund_type": fund_type,
+            "period": period,
+            "periods_available": data.get("periods_available", []),
+            "data_source": f"Archivo oficial SPP - {period}",
+        }
+
+        # ✅ NUEVO: Retornar según el tipo solicitado
+        if section_type == "acumulada" and acumulada_data:
+            result["rentability_data"] = acumulada_data
+            result["section_type"] = "acumulada"
+        elif section_type == "anualizada" and anualizada_data:
+            result["rentability_data"] = anualizada_data
+            result["section_type"] = "anualizada"
+        elif section_type == "both":
+            # ✅ NUEVO: Retornar ambas secciones organizadas
+            result["rentability_data"] = {
+                "acumulada": acumulada_data or {},
+                "anualizada": anualizada_data or {},
+            }
+            result["section_type"] = "both"
+        else:
+            return {"error": f"Sección '{section_type}' no disponible para {afp_name}"}
+
+        return result
 
     def compare_afp_rentability(
-        self, afps: List[str], fund_type: int = 0, period: str = None
+        self,
+        afps: List[str],
+        fund_type: int = 0,
+        period: str = None,
+        section_type: str = "both",
     ) -> Dict:
-        """Compara rentabilidad entre múltiples AFPs"""
+        """Compara rentabilidad entre múltiples AFPs con soporte acumulada/anualizada"""
+
         if not period:
             available_periods = self.get_available_periods(fund_type)
             if not available_periods:
                 return {
                     "error": f"No hay datos disponibles para el fondo tipo {fund_type}"
                 }
-            # Ordenar períodos y tomar el más reciente (sin asumir un máximo fijo)
             period = sorted(available_periods, reverse=True)[0]
 
-        comparison = {}
-        rankings = {}
+        comparison = {"acumulada": {}, "anualizada": {}}
+        rankings = {"acumulada": {}, "anualizada": {}}
 
         for afp in afps:
-            afp_data = self.get_rentability_by_afp(afp, fund_type, period)
+            afp_data = self.get_rentability_by_afp(afp, fund_type, period, "both")
             if "error" not in afp_data:
-                comparison[afp] = afp_data["rentability_data"]
+                rentability_data = afp_data["rentability_data"]
+                if "acumulada" in rentability_data:
+                    comparison["acumulada"][afp] = rentability_data["acumulada"]
+                if "anualizada" in rentability_data:
+                    comparison["anualizada"][afp] = rentability_data["anualizada"]
 
-        # Calcular rankings para diferentes períodos
-        if comparison:
-            sample_data = next(iter(comparison.values()))
-            for period_key in sample_data.keys():
-                if "nominal" in period_key or "real" in period_key:
-                    period_ranking = []
-                    for afp, data in comparison.items():
-                        if period_key in data:
-                            period_ranking.append((afp, data[period_key]))
-                    period_ranking.sort(key=lambda x: x[1], reverse=True)
-                    rankings[period_key] = period_ranking
+        # ✅ NUEVO: Calcular rankings para ambas secciones
+        for section in ["acumulada", "anualizada"]:
+            if comparison[section]:
+                sample_data = next(iter(comparison[section].values()))
+                for period_key in sample_data.keys():
+                    if "nominal" in period_key or "real" in period_key:
+                        period_ranking = []
+                        for afp, data in comparison[section].items():
+                            if period_key in data:
+                                period_ranking.append((afp, data[period_key]))
+                        period_ranking.sort(key=lambda x: x[1], reverse=True)
+                        rankings[section][period_key] = period_ranking
 
         return {
             "comparison": comparison,
             "fund_type": fund_type,
             "period": period,
             "rankings": rankings,
-            "analysis": f"Comparación de rentabilidad para fondo tipo {fund_type}",
+            "sections": ["acumulada", "anualizada"],
+            "analysis": f"Comparación de rentabilidad acumulada y anualizada para fondo tipo {fund_type}",
         }
 
     def get_available_periods(self, fund_type: int = None) -> List[str]:
@@ -412,9 +493,13 @@ class RentabilityDataManager:
         }
 
     def _get_rentability_from_sql(
-        self, afp_name: str, fund_type: int, period: str = None
+        self,
+        afp_name: str,
+        fund_type: int,
+        period: str = None,
+        section_type: str = "both",
     ) -> Dict:
-        """Obtiene datos de rentabilidad desde Azure SQL Database"""
+        """Obtiene datos de rentabilidad desde Azure SQL Database con soporte dual"""
         if not self.sql_connection_string:
             return {"error": "Azure SQL no configurado"}
 
@@ -426,7 +511,8 @@ class RentabilityDataManager:
 
             # Construir query
             query = """
-                SELECT period_key, rentability_value, rentability_type
+                SELECT period_key, rentability_value, rentability_type, 
+                        COALESCE(section_type, 'acumulada') as section_type
                 FROM rentability_data
                 WHERE LOWER(afp_name) = ? AND fund_type = ?
             """
@@ -439,6 +525,10 @@ class RentabilityDataManager:
                 # Obtener el período más reciente
                 query += " AND period = (SELECT MAX(period) FROM rentability_data WHERE LOWER(afp_name) = ? AND fund_type = ?)"
                 params.extend([afp_name.lower(), fund_type])
+            # ✅ NUEVO: Filtrar por section_type si se especifica
+            if section_type != "both":
+                query += " AND section_type = ?"
+                params.append(section_type)
 
             cursor.execute(query, params)
             rows = cursor.fetchall()
@@ -449,13 +539,22 @@ class RentabilityDataManager:
                     "error": f"No hay datos en SQL para {afp_name} fondo tipo {fund_type}"
                 }
 
-            # Procesar resultados
-            rentability_data = {}
+            # ✅ ACTUALIZADA: Procesar resultados separando por sección
+            acumulada_data = {}
+            anualizada_data = {}
             actual_period = None
 
             for row in rows:
-                period_key, value, rent_type = row
-                rentability_data[period_key] = float(value)
+                period_key, value, rent_type, section = row
+                float_value = float(value)
+
+                if section == "acumulada":
+                    acumulada_data[period_key] = float_value
+                elif section == "anualizada":
+                    anualizada_data[period_key] = float_value
+                else:
+                    # Compatibilidad con datos antiguos sin section_type
+                    acumulada_data[period_key] = float_value
 
                 # Obtener el período actual
                 if not actual_period:
@@ -469,13 +568,28 @@ class RentabilityDataManager:
 
             conn.close()
 
-            return {
+            # ✅ ESTRUCTURAR RESPUESTA según section_type solicitado
+            result = {
                 "afp_name": afp_name.title(),
                 "fund_type": fund_type,
                 "period": actual_period or period,
-                "rentability_data": rentability_data,
                 "data_source": "Azure SQL Database",
             }
+
+            if section_type == "acumulada":
+                result["rentability_data"] = acumulada_data
+                result["section_type"] = "acumulada"
+            elif section_type == "anualizada":
+                result["rentability_data"] = anualizada_data
+                result["section_type"] = "anualizada"
+            else:  # both
+                result["rentability_data"] = {
+                    "acumulada": acumulada_data,
+                    "anualizada": anualizada_data,
+                }
+                result["section_type"] = "both"
+
+            return result
 
         except Exception as e:
             logging.error(f"Error consultando Azure SQL: {str(e)}")
