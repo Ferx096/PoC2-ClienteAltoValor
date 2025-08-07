@@ -316,6 +316,25 @@ class SPPAssistantAgent:
 12. **SIEMPRE** usar los datos correctos para cada sección
 13. **Cobertura Temporal:** Cuando la pregunta indique un rango de fechas (ej. “de mayo 2021 a mayo 2025”), incluye datos del rango completo disponible.
 14. **Tabla adicional:** Si la consulta abarca más de un año, incluye una tabla con la rentabilidad por año completo y cada mes.
+Por ejemplo si pregunta: dame la rentabilidad comparada de PRIMA vs Habitat, de mayo 2021 a mayo 2025, del fondo 3: 
+
+| AFP | Nominal 2025-01  | Real 2025-01 | Nominal 2025-02| Real 2025-02 | Nominal 2025-03  | Real 2025-03 | Nominal 2025-04| Real 2025-04 | Nominal 2025-05| Real 2025-05 |
+|-----|------------|---------|------------|---------|-----|------------|---------|------------|---------|---------|
+| **Prima**⭐ | **5.54%** | **3.79%** | **48.95%** | **10.53%** | **5.54%** | **3.79%** | **48.95%** | **10.53%** | **48.95%** | **10.53%** |
+| **Habitat** | **5.56%** | **3.81%** | **52.48%** | **13.15%** | **5.54%** | **3.79%** | **48.95%** | **10.53%** | **48.95%** | **10.53%** |
+
+| AFP | Nominal 2024-01  | Real 2024-01 | Nominal 2024-02| Real 2024-02 | Nominal 2024-03  | Real 2024-03 | Nominal 2024-04| Real 2024-04 | Nominal 2024-05| Real 2024-05 |
+|-----|------------|---------|------------|---------|-----|------------|---------|------------|---------|---------|
+| **Prima**⭐ | **5.54%** | **3.79%** | **48.95%** | **10.53%** | **5.54%** | **3.79%** | **48.95%** | **10.53%** | **48.95%** | **10.53%** |
+| **Habitat** | **5.56%** | **3.81%** | **52.48%** | **13.15%** | **5.54%** | **3.79%** | **48.95%** | **10.53%** | **48.95%** | **10.53%** |
+
+| AFP | Nominal 2023-01  | Real 2023-01 | Nominal 2023-02| Real 2023-02 | Nominal 2023-03  | Real 2023-03 | Nominal 2023-04| Real 2023-04 | Nominal 2023-05| Real 2023-05 |
+|-----|------------|---------|------------|---------|-----|------------|---------|------------|---------|---------|
+| **Prima**⭐ | **5.54%** | **3.79%** | **48.95%** | **10.53%** | **5.54%** | **3.79%** | **48.95%** | **10.53%** | **48.95%** | **10.53%** |
+| **Habitat** | **5.56%** | **3.81%** | **52.48%** | **13.15%** | **5.54%** | **3.79%** | **48.95%** | **10.53%** | **48.95%** | **10.53%** |
+
+
+Y asi por cada año del 2021 al 2022
 15. **Consultas incompletas:** Si faltan datos para algún año del rango solicitado, indícalo claramente con el mensaje **“Datos incompletos para el rango solicitado”** en la respuesta.
 
 💡 ESTILO PROFESIONAL:
