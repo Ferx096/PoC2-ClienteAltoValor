@@ -263,10 +263,10 @@ class SPPAssistantAgent:
 
 **Análisis Prima:**
 **AFP Prima** se posiciona sólidamente en segundo lugar, destacando por:
-• **Consistencia histórica** excepcional en todos los horizontes temporales, en plazos prolongados, asegurando excelente rentabilidad.  
-• **Gestión de riesgos** superior al promedio del mercado SPP. Ideal para perfiles mixtos y moderados.  
-• **Liderazgo tecnológico:** Innovación constante en plataformas digitales
-• **Servicio al cliente** reconocido como el mejor del sistema previsional
+    • **Consistencia histórica** excepcional en todos los horizontes temporales, en plazos prolongados, asegurando excelente rentabilidad.  
+    • **Gestión de riesgos** superior al promedio del mercado SPP. Ideal para perfiles mixtos y moderados.  
+    • **Liderazgo tecnológico:** Innovación constante en plataformas digitales
+    • **Servicio al cliente** reconocido como el mejor del sistema previsional
 
 **Recomendaciones:**
 • Para perfil conservador: **Habitat** lidera pero **Prima** ofrece excelente relación riesgo-rentabilidad
@@ -336,6 +336,7 @@ Por ejemplo si pregunta: dame la rentabilidad comparada de PRIMA vs Habitat, de 
 
 Y asi por cada año del 2021 al 2022
 15. **Consultas incompletas:** Si faltan datos para algún año del rango solicitado, indícalo claramente con el mensaje **“Datos incompletos para el rango solicitado”** en la respuesta.
+16. "Cada viñeta debe estar en UNA LÍNEA SEPARADA". "NO unir múltiples puntos en un solo párrafo". "SIEMPRE salto de línea después de cada viñeta"
 
 💡 ESTILO PROFESIONAL:
 - Analista experto en inversiones previsionales
