@@ -45,7 +45,7 @@ class ExcelProcessor:
                 "rentability_data": {},
             }
 
-            # Extraer datos de rentabilidad
+            # ✅ ENHANCED:Extraer datos de rentabilidad
             rentability_data = self._extract_rentability_data(df, blob_name)
             result["rentability_data"] = rentability_data
 
@@ -141,8 +141,303 @@ class ExcelProcessor:
     def _extract_rentability_data(
         self, df: pd.DataFrame, filename: str
     ) -> Dict[str, Any]:
-        """Extrae datos de rentabilidad de fondos de pensiones"""
+        """Extrae datos de rentabilidad de fondos de pensiones ACUMULADA Y ANUALIZADA"""
 
+        extracted = {
+            "fund_type": None,
+            "period": None,
+            "afp_data": [],
+            "data_type": "rentability",
+            "periods_available": [],
+            # SECCION NUEVA
+            "rentability_type_info": {
+                "has_accumulated": False,
+                "has_annualized": False,
+                "table_locations": {},
+            },
+        }
+
+        try:
+            # Extraer tipo de fondo del nombre del archivo
+            fund_match = re.search(r"Tipo\s+(\d+)", filename)
+            if fund_match:
+                extracted["fund_type"] = int(fund_match.group(1))
+            else:
+                # Buscar patrones alternativos en el nombre del archivo
+                if "FP-1219-0" in filename or "FP12190" in filename:
+                    extracted["fund_type"] = 0
+                elif "FP-1220-1" in filename or "FP12201" in filename:
+                    extracted["fund_type"] = 1
+                elif "FP-1360" in filename or "FP1360" in filename:
+                    extracted["fund_type"] = 2
+                elif "FP-1220-2" in filename or "FP12202" in filename:
+                    extracted["fund_type"] = 3
+
+            # Extraer período del nombre del archivo
+            period_match = re.search(r"(\w{2})(\d{4})", filename)
+            if period_match:
+                month_abbr = period_match.group(1)
+                year = period_match.group(2)
+                month_map = {
+                    "en": "01",
+                    "fe": "02",
+                    "ma": "03",
+                    "ab": "04",
+                    "my": "05",
+                    "jn": "06",
+                    "jl": "07",
+                    "ag": "08",
+                    "se": "09",
+                    "oc": "10",
+                    "no": "11",
+                    "di": "12",
+                }
+                extracted["period"] = f"{year}-{month_map.get(month_abbr, '01')}"
+
+            # ✅ ENHANCED: Detectar ubicación de las 2 tablas (ACUMULADA y ANUALIZADA)
+            table_locations = self._detect_table_locations(df)
+            extracted["rentability_type_info"]["table_locations"] = table_locations
+
+            # ✅ Procesar TABLA ACUMULADA (superior)
+            if table_locations.get("accumulated"):
+                acc_data = self._extract_table_data(
+                    df, table_locations["accumulated"], "accumulated"
+                )
+                if acc_data:
+                    extracted["rentability_type_info"]["has_accumulated"] = True
+
+            # ✅ Procesar TABLA ANUALIZADA (inferior)
+            if table_locations.get("annualized"):
+                ann_data = self._extract_table_data(
+                    df, table_locations["annualized"], "annualized"
+                )
+                if ann_data:
+                    extracted["rentability_type_info"]["has_annualized"] = True
+
+            # ✅ COMBINAR datos de ambas tablas por AFP
+            extracted["afp_data"] = self._combine_accumulated_and_annualized_data(
+                acc_data if "acc_data" in locals() else [],
+                ann_data if "ann_data" in locals() else [],
+            )
+
+            # ✅ BACKWARD COMPATIBILITY: Mantener estructura original para compatibilidad
+            if not extracted["afp_data"]:
+                # Fallback al método original si las nuevas tablas no funcionan
+                logging.warning(f"Usando método original para {filename}")
+                extracted = self._extract_rentability_data_original(df, filename)
+
+            logging.info(
+                f"Extraídos datos ENHANCED para {len(extracted['afp_data'])} AFPs del archivo {filename}"
+            )
+            return extracted
+
+        except Exception as e:
+            logging.error(f"Error extrayendo datos ENHANCED: {str(e)}")
+            # ✅ FALLBACK: Si falla, usar método original
+            logging.warning("Fallback al método original...")
+            return self._extract_rentability_data_original(df, filename)
+
+    def _detect_table_locations(self, df: pd.DataFrame) -> Dict[str, Dict]:
+        """
+        ✅ Detecta automáticamente la ubicación de las tablas ACUMULADA y ANUALIZADA
+        """
+        table_locations = {}
+
+        # Buscar indicadores de tablas en el Excel
+        for i in range(min(30, len(df))):  # Buscar en las primeras 30 filas
+            for j in range(min(10, df.shape[1])):  # Primeras 10 columnas
+                cell_value = str(df.iloc[i, j]).upper().strip()
+
+                # Detectar tabla ACUMULADA
+                if any(
+                    keyword in cell_value
+                    for keyword in ["ACUMULAD", "ACUMULA", "ACCUMULATED"]
+                ):
+                    table_locations["accumulated"] = {
+                        "start_row": i,
+                        "header_row": i + 2,  # Usualmente 2 filas después
+                        "data_start_row": i + 5,  # AFPs empiezan 5 filas después
+                        "type": "accumulated",
+                    }
+                    logging.info(f"Tabla ACUMULADA detectada en fila {i}")
+
+                # Detectar tabla ANUALIZADA
+                elif any(
+                    keyword in cell_value
+                    for keyword in ["ANUALIZ", "ANUALI", "ANNUALIZED", "ANUAL"]
+                ):
+                    table_locations["annualized"] = {
+                        "start_row": i,
+                        "header_row": i + 2,
+                        "data_start_row": i + 5,
+                        "type": "annualized",
+                    }
+                    logging.info(f"Tabla ANUALIZADA detectada en fila {i}")
+
+        # Si no se detectan automáticamente, usar ubicaciones predeterminadas
+        if not table_locations:
+            # Ubicaciones típicas basadas en estructura común
+            table_locations = {
+                "accumulated": {
+                    "start_row": 3,
+                    "header_row": 4,
+                    "data_start_row": 7,
+                    "type": "accumulated",
+                },
+                "annualized": {
+                    "start_row": 15,  # Tabla inferior típicamente empieza en fila 15+
+                    "header_row": 16,
+                    "data_start_row": 19,
+                    "type": "annualized",
+                },
+            }
+            logging.info("Usando ubicaciones predeterminadas para las tablas")
+
+        return table_locations
+
+    def _extract_table_data(
+        self, df: pd.DataFrame, table_info: Dict, table_type: str
+    ) -> List[Dict]:
+        """
+        ✅ Extrae datos de una tabla específica (ACUMULADA o ANUALIZADA)
+        """
+        try:
+            start_row = table_info["data_start_row"]
+            afp_data = []
+
+            # Extraer períodos disponibles de las columnas (header_row)
+            periods = []
+            header_row = table_info["header_row"]
+
+            for col in range(1, df.shape[1], 2):  # Cada 2 columnas (nominal y real)
+                if col < df.shape[1]:
+                    period_cell = str(df.iloc[header_row, col])
+                    if "/" in period_cell and any(
+                        char.isdigit() for char in period_cell
+                    ):
+                        periods.append(period_cell.strip())
+
+            # Extraer datos de AFPs
+            afp_names = ["Habitat", "Integra", "Prima", "Profuturo"]
+
+            for idx in range(
+                start_row, min(start_row + 6, len(df))
+            ):  # Máximo 6 filas después del inicio
+                afp_name_cell = str(df.iloc[idx, 0])
+
+                for afp in afp_names:
+                    if afp.lower() in afp_name_cell.lower():
+                        afp_rentability = {
+                            "afp_name": afp,
+                            "table_type": table_type,  # ✅ "accumulated" o "annualized"
+                            "rentability_data": {},
+                        }
+
+                        # Extraer datos de rentabilidad por período
+                        col_idx = 1
+                        for i, period in enumerate(periods):
+                            if col_idx < df.shape[1]:
+                                # ✅ RENTABILIDAD NOMINAL
+                                nominal_val = df.iloc[idx, col_idx]
+                                if self._is_valid_numeric_value(nominal_val):
+                                    nominal_float = self._convert_to_float(nominal_val)
+                                    if nominal_float is not None:
+                                        # Claves con tipo de tabla
+                                        key_base = f"period_{i+1}_{table_type}_nominal"
+                                        afp_rentability["rentability_data"][
+                                            key_base
+                                        ] = nominal_float
+
+                                        # Clave alternativa con período
+                                        alt_key = f"{period}_{table_type}_nominal"
+                                        afp_rentability["rentability_data"][
+                                            alt_key
+                                        ] = nominal_float
+
+                                # ✅ RENTABILIDAD REAL
+                                if col_idx + 1 < df.shape[1]:
+                                    real_val = df.iloc[idx, col_idx + 1]
+                                    if self._is_valid_numeric_value(real_val):
+                                        real_float = self._convert_to_float(real_val)
+                                        if real_float is not None:
+                                            key_base = f"period_{i+1}_{table_type}_real"
+                                            afp_rentability["rentability_data"][
+                                                key_base
+                                            ] = real_float
+
+                                            alt_key = f"{period}_{table_type}_real"
+                                            afp_rentability["rentability_data"][
+                                                alt_key
+                                            ] = real_float
+
+                                col_idx += 2
+
+                        if afp_rentability["rentability_data"]:
+                            afp_data.append(afp_rentability)
+                        break
+
+            return afp_data
+
+        except Exception as e:
+            logging.error(f"Error extrayendo tabla {table_type}: {str(e)}")
+            return []
+
+    def _combine_accumulated_and_annualized_data(
+        self, acc_data: List[Dict], ann_data: List[Dict]
+    ) -> List[Dict]:
+        """
+        ✅ Combina datos de rentabilidad ACUMULADA y ANUALIZADA por AFP
+        """
+        combined_data = []
+        afp_names = ["Habitat", "Integra", "Prima", "Profuturo"]
+
+        for afp in afp_names:
+            # Buscar datos de esta AFP en ambas tablas
+            acc_afp_data = next(
+                (item for item in acc_data if item["afp_name"] == afp), None
+            )
+            ann_afp_data = next(
+                (item for item in ann_data if item["afp_name"] == afp), None
+            )
+
+            if acc_afp_data or ann_afp_data:
+                combined_afp = {
+                    "afp_name": afp,
+                    "rentability_data": {},
+                    "data_sources": [],
+                }
+
+                # ✅ Agregar datos ACUMULADOS
+                if acc_afp_data:
+                    combined_afp["rentability_data"].update(
+                        acc_afp_data["rentability_data"]
+                    )
+                    combined_afp["data_sources"].append("accumulated")
+
+                    # ✅ BACKWARD COMPATIBILITY: Mantener claves originales (sin especificar tipo)
+                    for key, value in acc_afp_data["rentability_data"].items():
+                        if "accumulated" in key:
+                            # Crear clave compatible con sistema original
+                            original_key = key.replace("_accumulated", "")
+                            combined_afp["rentability_data"][original_key] = value
+
+                # ✅ Agregar datos ANUALIZADOS
+                if ann_afp_data:
+                    combined_afp["rentability_data"].update(
+                        ann_afp_data["rentability_data"]
+                    )
+                    combined_afp["data_sources"].append("annualized")
+
+                combined_data.append(combined_afp)
+
+        return combined_data
+
+    def _extract_rentability_data_original(
+        self, df: pd.DataFrame, filename: str
+    ) -> Dict[str, Any]:
+        """
+        ✅ MÉTODO ORIGINAL - Mantenido para backward compatibility
+        """
         extracted = {
             "fund_type": None,
             "period": None,
@@ -152,6 +447,7 @@ class ExcelProcessor:
         }
 
         try:
+            # [CÓDIGO ORIGINAL EXACTAMENTE IGUAL...]
             # Extraer tipo de fondo del nombre del archivo
             fund_match = re.search(r"Tipo\s+(\d+)", filename)
             if fund_match:
@@ -274,12 +570,14 @@ class ExcelProcessor:
                         break
 
             logging.info(
-                f"Extraídos datos para {len(extracted['afp_data'])} AFPs del archivo {filename}"
+                f"Extraídos datos ORIGINALES para {len(extracted['afp_data'])} AFPs del archivo {filename}"
             )
             return extracted
 
         except Exception as e:
-            logging.error(f"Error extrayendo datos de rentabilidad: {str(e)}")
+            logging.error(
+                f"Error extrayendo datos de rentabilidad ORIGINALES: {str(e)}"
+            )
             return extracted
 
     def _extract_file_metadata(self, filename: str) -> Dict[str, Any]:
@@ -322,6 +620,7 @@ class ExcelProcessor:
 
         return metadata
 
+    # FUNCION DE PRUEBA
     def process_local_file(self, file_path: str) -> Dict[str, Any]:
         """Procesa un archivo Excel local para testing"""
         try:
@@ -388,6 +687,14 @@ class ExcelProcessor:
                 for key, value in afp_data["rentability_data"].items():
                     rentability_type = "nominal" if "nominal" in key else "real"
 
+                    if "accumulated" in key:
+                        calculation_type = "accumulated"
+
+                    elif "annualized" in key:
+                        calculation_type = "annualized"
+                    else:
+                        calculation_type = "legacy"
+
                     cursor.execute(
                         """
                         INSERT INTO rentability_data
@@ -432,11 +739,12 @@ class ExcelProcessor:
             documents = []
             fund_type = data.get("fund_type")
             period = data.get("period")
+            rentability_info = data.get("rentability_type_info", {})
 
             for afp_data in data.get("afp_data", []):
                 afp_name = afp_data["afp_name"]
 
-                # ✅ DOCUMENTO CON NOMBRES EXACTOS DEL ESQUEMA (camelCase)
+                # ✅ DOCUMENTO CON INFORMACION COMPLETA
                 doc = {
                     "id": str(uuid.uuid4()),  # ✅ id
                     "fundType": fund_type,  # ✅ fundType (camelCase)
@@ -447,8 +755,10 @@ class ExcelProcessor:
                         afp_data["rentability_data"]
                     ),  # ✅ rentabilityData (camelCase)
                     "documentType": "rentability_report",  # ✅ documentType (camelCase)
-                    "createdAt": datetime.now().isoformat()
-                    + "Z",  # ✅ createdAt (camelCase)
+                    "hasAccumulated": rentability_info.get("has_accumulated", False),
+                    "hasAnnualized": rentability_info.get("has_annualized", False),
+                    "dataSources": afp_data.get("data_sources", []),
+                    "createdAt": datetime.now().isoformat() + "Z",
                 }
                 documents.append(doc)
 
