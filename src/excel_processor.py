@@ -12,7 +12,7 @@ import logging
 
 
 class ExcelProcessor:
-    """Procesador de archivos Excel de rentabilidad de fondos de pensiones"""
+    """Procesador de archivos Excel de rentabilidad de fondos de pensiones - ENHANCED VERSION"""
 
     def __init__(self):
         # Solo inicializar blob_client si tenemos credenciales
@@ -45,18 +45,18 @@ class ExcelProcessor:
                 "rentability_data": {},
             }
 
-            # ✅ ENHANCED:Extraer datos de rentabilidad
-            rentability_data = self._extract_rentability_data(df, blob_name)
+            # ✅ ENHANCED: Extraer datos de rentabilidad con diferenciación acumulada/anualizada
+            rentability_data = self._extract_rentability_data_enhanced(df, blob_name)
             result["rentability_data"] = rentability_data
 
             # Extraer metadatos del archivo
             result["metadata"] = self._extract_file_metadata(blob_name)
 
-            # TODO: Guardar en Azure SQL Database
-            self._save_to_sql(rentability_data)
+            # Guardar en Azure SQL Database
+            self._save_to_sql_enhanced(rentability_data)
 
-            # TODO: Indexar en Azure AI Search
-            self._index_in_search(rentability_data)
+            # Indexar en Azure AI Search
+            self._index_in_search_enhanced(rentability_data)
 
             return result
 
@@ -138,18 +138,21 @@ class ExcelProcessor:
             logging.debug(f"Error convirtiendo '{value}' a float: {e}")
             return None
 
-    def _extract_rentability_data(
+    def _extract_rentability_data_enhanced(
         self, df: pd.DataFrame, filename: str
     ) -> Dict[str, Any]:
-        """Extrae datos de rentabilidad de fondos de pensiones ACUMULADA Y ANUALIZADA"""
+        """
+        ✅ ENHANCED: Extrae datos de rentabilidad diferenciando ACUMULADA vs ANUALIZADA
+        Mantiene retrocompatibilidad total con el sistema actual
+        """
 
         extracted = {
             "fund_type": None,
             "period": None,
             "afp_data": [],
-            "data_type": "rentability",
+            "data_type": "rentability_enhanced",
             "periods_available": [],
-            # SECCION NUEVA
+            # ✅ NUEVAS SECCIONES
             "rentability_type_info": {
                 "has_accumulated": False,
                 "has_annualized": False,
@@ -198,6 +201,9 @@ class ExcelProcessor:
             table_locations = self._detect_table_locations(df)
             extracted["rentability_type_info"]["table_locations"] = table_locations
 
+            acc_data = []
+            ann_data = []
+
             # ✅ Procesar TABLA ACUMULADA (superior)
             if table_locations.get("accumulated"):
                 acc_data = self._extract_table_data(
@@ -216,15 +222,14 @@ class ExcelProcessor:
 
             # ✅ COMBINAR datos de ambas tablas por AFP
             extracted["afp_data"] = self._combine_accumulated_and_annualized_data(
-                acc_data if "acc_data" in locals() else [],
-                ann_data if "ann_data" in locals() else [],
+                acc_data, ann_data
             )
 
             # ✅ BACKWARD COMPATIBILITY: Mantener estructura original para compatibilidad
             if not extracted["afp_data"]:
                 # Fallback al método original si las nuevas tablas no funcionan
                 logging.warning(f"Usando método original para {filename}")
-                extracted = self._extract_rentability_data_original(df, filename)
+                return self._extract_rentability_data_original(df, filename)
 
             logging.info(
                 f"Extraídos datos ENHANCED para {len(extracted['afp_data'])} AFPs del archivo {filename}"
@@ -447,7 +452,6 @@ class ExcelProcessor:
         }
 
         try:
-            # [CÓDIGO ORIGINAL EXACTAMENTE IGUAL...]
             # Extraer tipo de fondo del nombre del archivo
             fund_match = re.search(r"Tipo\s+(\d+)", filename)
             if fund_match:
@@ -620,7 +624,6 @@ class ExcelProcessor:
 
         return metadata
 
-    # FUNCION DE PRUEBA
     def process_local_file(self, file_path: str) -> Dict[str, Any]:
         """Procesa un archivo Excel local para testing"""
         try:
@@ -633,8 +636,8 @@ class ExcelProcessor:
                 "rentability_data": {},
             }
 
-            # Extraer datos de rentabilidad
-            rentability_data = self._extract_rentability_data(df, file_path)
+            # ✅ ENHANCED: Usar método mejorado
+            rentability_data = self._extract_rentability_data_enhanced(df, file_path)
             result["rentability_data"] = rentability_data
 
             # Extraer metadatos del archivo
@@ -646,8 +649,10 @@ class ExcelProcessor:
             logging.error(f"Error procesando archivo local: {str(e)}")
             return {"filename": file_path, "status": "error", "error": str(e)}
 
-    def _save_to_sql(self, data: Dict):
-        """Guarda datos de rentabilidad en Azure SQL Database"""
+    def _save_to_sql_enhanced(self, data: Dict):
+        """
+        ✅ ENHANCED: Guarda datos de rentabilidad en Azure SQL Database incluyendo tipo de rentabilidad
+        """
         try:
             import pyodbc
             from config import AZURE_SQL_CONFIG
@@ -661,7 +666,7 @@ class ExcelProcessor:
             conn = pyodbc.connect(connection_string + "Database=sbsbdsql;")
             cursor = conn.cursor()
 
-            # Crear tabla si no existe
+            # ✅ ENHANCED: Crear tabla con nuevas columnas
             cursor.execute(
                 """
                 IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='rentability_data' AND xtype='U')
@@ -672,47 +677,60 @@ class ExcelProcessor:
                     afp_name VARCHAR(50),
                     period_key VARCHAR(50),
                     rentability_value FLOAT,
-                    rentability_type VARCHAR(10),
+                    rentability_type VARCHAR(10), -- 'nominal' or 'real'
+                    calculation_type VARCHAR(20), -- 'accumulated' or 'annualized'
                     created_at DATETIME DEFAULT GETDATE()
                 )
             """
             )
 
-            # Insertar datos
+            # ✅ ENHANCED: Insertar datos con tipo de cálculo
             fund_type = data.get("fund_type")
             period = data.get("period")
 
             for afp_data in data.get("afp_data", []):
                 afp_name = afp_data["afp_name"]
                 for key, value in afp_data["rentability_data"].items():
+                    # Determinar tipo de rentabilidad y cálculo
                     rentability_type = "nominal" if "nominal" in key else "real"
 
                     if "accumulated" in key:
                         calculation_type = "accumulated"
-
                     elif "annualized" in key:
                         calculation_type = "annualized"
                     else:
-                        calculation_type = "legacy"
+                        calculation_type = "legacy"  # Para backward compatibility
 
                     cursor.execute(
                         """
                         INSERT INTO rentability_data
-                        (fund_type, period, afp_name, period_key, rentability_value, rentability_type)
-                        VALUES (?, ?, ?, ?, ?, ?)
+                        (fund_type, period, afp_name, period_key, rentability_value, rentability_type, calculation_type)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
-                        (fund_type, period, afp_name, key, value, rentability_type),
+                        (
+                            fund_type,
+                            period,
+                            afp_name,
+                            key,
+                            value,
+                            rentability_type,
+                            calculation_type,
+                        ),
                     )
 
             conn.commit()
             conn.close()
-            logging.info(f"Datos guardados en SQL Database para fondo tipo {fund_type}")
+            logging.info(
+                f"Datos ENHANCED guardados en SQL Database para fondo tipo {fund_type}"
+            )
 
         except Exception as e:
-            logging.error(f"Error guardando en SQL: {str(e)}")
+            logging.error(f"Error guardando en SQL ENHANCED: {str(e)}")
 
-    def _index_in_search(self, data: Dict):
-        """Indexa datos de rentabilidad en Azure AI Search"""
+    def _index_in_search_enhanced(self, data: Dict):
+        """
+        ✅ ENHANCED: Indexa datos de rentabilidad en Azure AI Search con tipos diferenciados
+        """
         try:
             from azure.search.documents import SearchClient
             from azure.core.credentials import AzureKeyCredential
@@ -735,7 +753,7 @@ class ExcelProcessor:
                 credential=AzureKeyCredential(api_key),
             )
 
-            # Preparar documentos para indexar
+            # ✅ ENHANCED: Preparar documentos con información de tipos
             documents = []
             fund_type = data.get("fund_type")
             period = data.get("period")
@@ -744,17 +762,15 @@ class ExcelProcessor:
             for afp_data in data.get("afp_data", []):
                 afp_name = afp_data["afp_name"]
 
-                # ✅ DOCUMENTO CON INFORMACION COMPLETA
+                # Documento con información completa
                 doc = {
-                    "id": str(uuid.uuid4()),  # ✅ id
-                    "fundType": fund_type,  # ✅ fundType (camelCase)
-                    "period": period,  # ✅ period
-                    "afpName": afp_name,  # ✅ afpName (camelCase)
-                    "content": f"Rentabilidad del fondo tipo {fund_type} de {afp_name} para el período {period}",  # ✅ content
-                    "rentabilityData": json.dumps(
-                        afp_data["rentability_data"]
-                    ),  # ✅ rentabilityData (camelCase)
-                    "documentType": "rentability_report",  # ✅ documentType (camelCase)
+                    "id": str(uuid.uuid4()),
+                    "fundType": fund_type,
+                    "period": period,
+                    "afpName": afp_name,
+                    "content": f"Rentabilidad del fondo tipo {fund_type} de {afp_name} para el período {period}. Incluye datos acumulados y anualizados.",
+                    "rentabilityData": json.dumps(afp_data["rentability_data"]),
+                    "documentType": "rentability_report_enhanced",
                     "hasAccumulated": rentability_info.get("has_accumulated", False),
                     "hasAnnualized": rentability_info.get("has_annualized", False),
                     "dataSources": afp_data.get("data_sources", []),
@@ -765,10 +781,27 @@ class ExcelProcessor:
             # Subir documentos
             if documents:
                 search_client.upload_documents(documents)
-                logging.info(f"Indexados {len(documents)} documentos en AI Search")
+                logging.info(
+                    f"Indexados {len(documents)} documentos ENHANCED en AI Search"
+                )
 
         except Exception as e:
-            logging.error(f"Error indexando en AI Search: {str(e)}")
+            logging.error(f"Error indexando en AI Search ENHANCED: {str(e)}")
             # Agregar más detalles del error para debugging
             if hasattr(e, "error") and hasattr(e.error, "message"):
                 logging.error(f"Detalles del error: {e.error.message}")
+
+    # ✅ BACKWARD COMPATIBILITY: Mantener método original disponible
+    def _extract_rentability_data(
+        self, df: pd.DataFrame, filename: str
+    ) -> Dict[str, Any]:
+        """Método original mantenido para compatibilidad"""
+        return self._extract_rentability_data_original(df, filename)
+
+    def _save_to_sql(self, data: Dict):
+        """Método original mantenido para compatibilidad"""
+        self._save_to_sql_enhanced(data)
+
+    def _index_in_search(self, data: Dict):
+        """Método original mantenido para compatibilidad"""
+        self._index_in_search_enhanced(data)

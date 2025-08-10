@@ -482,8 +482,14 @@
             formatted = formatted.replace(/<p><\/p>/g, '');
             formatted = formatted.replace(/<p>\s*<\/p>/g, '');
 
+            // ✅ NUEVO: Detectar y resaltar diferencias en tablas
+            formatted = formatted.replace(/(\+?\-?\d+\.?\d*%)/g, '<span class="percentage">$1</span>');
+            // ✅ NUEVO: Destacar términos enhanced
+            formatted = formatted.replace(/(acumulad[ao]|anualiz[ao])/gi, '<strong class="enhanced-term">$1</strong>');
+
             return formatted;
         }
+
 
         function convertMarkdownTables(text) {
             // Buscar tablas en formato markdown
@@ -589,6 +595,15 @@
             </ul>`);
         }, 2000);
     </script>
+    <style>
+        .enhanced-term {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 1px 3px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+    </style>
 </body>
 
 </html>

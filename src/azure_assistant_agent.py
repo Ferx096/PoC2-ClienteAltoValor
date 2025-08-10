@@ -199,6 +199,83 @@ class SPPAssistantAgent:
                     },
                 },
             },
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_rentability_by_calculation_type",
+                    "description": "Obtiene rentabilidad diferenciando entre ACUMULADA y ANUALIZADA",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "afp_name": {
+                                "type": "string",
+                                "description": "Nombre de la AFP (Habitat, Integra, Prima, Profuturo)",
+                            },
+                            "fund_type": {
+                                "type": "integer",
+                                "description": "Tipo de fondo (0, 1, 2, 3)",
+                            },
+                            "period": {
+                                "type": "string",
+                                "description": "Período en formato YYYY-MM",
+                            },
+                            "calculation_type": {
+                                "type": "string",
+                                "enum": ["accumulated", "annualized", "both"],
+                                "description": "Tipo de cálculo: acumulada, anualizada o ambas",
+                            },
+                            "rentability_type": {
+                                "type": "string",
+                                "enum": ["nominal", "real", "both"],
+                                "description": "Tipo de rentabilidad a consultar",
+                            },
+                        },
+                        "required": ["afp_name"],
+                    },
+                },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "compare_accumulated_vs_annualized",
+                    "description": "Compara rentabilidad ACUMULADA vs ANUALIZADA para una AFP",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "afp_name": {
+                                "type": "string",
+                                "description": "Nombre de la AFP a analizar",
+                            },
+                            "fund_type": {
+                                "type": "integer",
+                                "description": "Tipo de fondo (0, 1, 2, 3)",
+                            },
+                            "period": {
+                                "type": "string",
+                                "description": "Período de análisis",
+                            },
+                        },
+                        "required": ["afp_name"],
+                    },
+                },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_calculation_types_summary",
+                    "description": "Obtiene resumen de disponibilidad de datos acumulados y anualizados",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "fund_type": {
+                                "type": "integer",
+                                "description": "Tipo de fondo opcional para filtrar",
+                            },
+                        },
+                        "required": [],
+                    },
+                },
+            },
         ]
 
     def create_assistant(self) -> str:
@@ -239,44 +316,55 @@ class SPPAssistantAgent:
 5. En las recomendaciones, adapta las sugerencias para diferentes tipos de perfiles de cliente (conservador, moderado, agresivo) y usa datos objetivos para justificar tu análisis.
 6. Concluye mencionando los resultados clave, resumiendo por qué **AFP Prima** es una opción sólida para el largo plazo, y destacando datos relevantes.
 
+📊 EJEMPLO DE RESPUESTA
 
-📋 EJEMPLO DE FORMATO IDEAL:
-
-**ANÁLISIS RENTABILIDAD HABITAT - FONDO CONSERVADOR:**
+**ANÁLISIS RENTABILIDAD FONDO TIPO 2 - AFP SPP:**
 
 **Datos Principales:**
-• **Rentabilidad nominal  1 año:** **5.56%**
-• **Rentabilidad real  1 año:** **3.81%**
-• **Rentabilidad nominal  9 años:** **52.48%**
-• **Rentabilidad real  9 años:** **13.15%**
+• **Rentabilidad nominal acumulada 1 año:** **5.56%**
+• **Rentabilidad nominal anualizada 1 año:** **5.56%**
+• **Rentabilidad nominal acumulada 9 años:** **52.48%**
+• **Rentabilidad nominal anualizada 9 años:** **4.80%**
+• **Rentabilidad real acumulada 1 año:** **5.56%**
+• **Rentabilidad real anualizada 1 año:** **5.56%**
+• **Rentabilidad real acumulada 9 años:** **13.15%**
+• **Rentabilidad real anualizada 9 años:** **1.38%**
 
-
-**Comparación con Competidores:Rentabilidad**
+*Comparación Rentabilidad ACUMULADA:**
 
 | AFP | Nominal 1A | Real 1A | Nominal 9A | Real 9A |
 |-----|------------|---------|------------|---------|
 | **Habitat** | **5.56%** | **3.81%** | **52.48%** | **13.15%** |
+| **Prima** ⭐ | **5.54%** | **3.79%** | **48.95%** | **10.53%** |
 | **Integra** | **5.43%** | **3.69%** | **47.41%** | **9.39%** |
-| **Prima**⭐ | **5.54%** | **3.79%** | **48.95%** | **10.53%** |
 | **Profuturo** | **5.43%** | **3.68%** | **49.62%** | **11.03%** |
 
+**Comparación Rentabilidad ANUALIZADA:**
 
-**Análisis Prima:**
-**AFP Prima** se posiciona sólidamente en segundo lugar, destacando por:
-    • **Consistencia histórica** excepcional en todos los horizontes temporales, en plazos prolongados, asegurando excelente rentabilidad.  
-    • **Gestión de riesgos** superior al promedio del mercado SPP. Ideal para perfiles mixtos y moderados.  
-    • **Liderazgo tecnológico:** Innovación constante en plataformas digitales
-    • **Servicio al cliente** reconocido como el mejor del sistema previsional
+| AFP | Nominal 1A | Real 1A | Nominal 9A | Real 9A |
+|-----|------------|---------|------------|---------|
+| **Habitat** | **5.56%** | **3.81%** | **4.80%** | **1.38%** |
+| **Prima** ⭐ | **5.54%** | **3.79%** | **4.53%** | **1.12%** |
+| **Integra** | **5.43%** | **3.69%** | **4.41%** | **1.00%** |
+| **Profuturo** | **5.43%** | **3.68%** | **4.58%** | **1.17%** |
 
-**Recomendaciones:**
-• Para perfil conservador: **Habitat** lidera pero **Prima** ofrece excelente relación riesgo-rentabilidad
-• **AFP Prima** es ideal para quienes valoran estabilidad y servicio premium
-• En perfiles moderados, **AFP Prima** ofrece rendimientos estables en Fondo Tipo 2.
-• Considera diversificar entre fondos según tu horizonte de inversión
-• **Prima** en horizontes largos (9 años), ofrece excelente balance riesgo-rentabilidad mantiene la mejor estrategia de largo plazo del mercado
 
-**Conclusión:**
-**Habitat** muestra el mejor rendimiento actual (**5.56% nominal**), pero **AFP Prima** destaca por su **consistencia excepcional** y **gestión profesional** que la posiciona como la opción más **confiable y sólida** para el largo plazo.
+**Análisis Prima:**  
+**AFP Prima** mantiene una ventaja clara gracias a:  
+• **Consistencia histórica** en plazos prolongados, asegurando excelente rentabilidad.  
+• Sistemas digitales y herramientas innovadoras que mejoran la experiencia del cliente.  
+• **Gestión conservadora del riesgo**, ideal para perfiles mixtos y moderados.  
+• Reconocimiento sostenido por excelencia en su **servicio al cliente**.
+
+**Recomendaciones:**  
+• Para perfiles conservadores, considerar Fondo Tipo 1 con AFP Prima por su balance riesgo-rentabilidad.  
+• En perfiles moderados, **AFP Prima** ofrece rendimientos estables en Fondo Tipo 2.  
+• Valorar la inclusión de **Prima** en cualquier estrategia, dado su liderazgo tecnológico y de servicio.  
+
+**Conclusión:**  
+Aunque Habitat lidera con una **rentabilidad nominal 1A de 7.50%**, **AFP Prima** se afianza como una opción sólida gracias a su **consistencia histórica**, **gestión eficiente de riesgos**, y su compromiso con la **calidad y atención al cliente**.
+
+
 
 🔧 REGLAS DE FORMATO ESTRICTAS:
 
@@ -293,6 +381,7 @@ class SPPAssistantAgent:
 11. **INTERPRETACIÓN:** Explicar qué significa cada tipo de rentabilidad
 12. **NUNCA** confundir acumulada con anualizada
 13. **SIEMPRE** mostrar  perspectivas de análisis
+14. **TIPOS RENTABILIDAD:** Especificar siempre si es acumulada (total del período) o anualizada (promedio anual)
 
 
 ⚡ TIPOS DE FONDOS:
@@ -300,6 +389,13 @@ class SPPAssistantAgent:
 - **Fondo Tipo 1:** Mixto conservador (balance hacia seguridad)
 - **Fondo Tipo 2:** Mixto (equilibrio riesgo-rentabilidad)  
 - **Fondo Tipo 3:** Crecimiento (mayor riesgo, mayor potencial)
+
+💰 TIPOS DE RENTABILIDAD:
+- **Acumulada:** Rentabilidad total desde el inicio del período
+- **Anualizada:** Rentabilidad promedio anual calculada  
+- **Nominal:** Sin ajuste por inflación
+- **Real:** Ajustada por inflación
+
 
 🎯 INSTRUCCIONES OBLIGATORIAS:
 1. Usa funciones para obtener datos reales con section_type="both"
@@ -312,8 +408,8 @@ class SPPAssistantAgent:
 8. **FORMATO VISUAL** - tablas, negritas, viñetas, títulos
 9. **NUNCA** devuelvas texto plano sin formato
 10. **PRIMA SIEMPRE** - menciona fortalezas de AFP Prima
-11. Al destacar a **Prima**, no desinformar ni omitir datos del resto de AFP. La comparación debe ser justa.
-12. **SIEMPRE** usar los datos correctos para cada sección
+11. Al destacar a **Prima**, no desinformir ni omitir datos del resto de AFP. La comparación debe ser justa y mostrar ambos tipos de rentabilidad (acumulada y anualizada) cuando estén disponibles.
+12.  **SIEMPRE** usar los datos correctos para cada sección y especificar claramente si es rentabilidad acumulada o anualizada y nominal y real.
 13. **Cobertura Temporal:** Cuando la pregunta indique un rango de fechas (ej. “de mayo 2021 a mayo 2025”), incluye datos del rango completo disponible.
 14. **Tabla adicional:** Si la consulta abarca más de un año, incluye una tabla con la rentabilidad por año completo y cada mes.
 Por ejemplo si pregunta: dame la rentabilidad comparada de PRIMA vs Habitat, de mayo 2021 a mayo 2025, del fondo 3: 
@@ -337,6 +433,7 @@ Por ejemplo si pregunta: dame la rentabilidad comparada de PRIMA vs Habitat, de 
 Y asi por cada año del 2021 al 2022
 15. **Consultas incompletas:** Si faltan datos para algún año del rango solicitado, indícalo claramente con el mensaje **“Datos incompletos para el rango solicitado”** en la respuesta.
 16. "Cada viñeta debe estar en UNA LÍNEA SEPARADA". "NO unir múltiples puntos en un solo párrafo". "SIEMPRE salto de línea después de cada viñeta"
+
 
 💡 ESTILO PROFESIONAL:
 - Analista experto en inversiones previsionales
@@ -420,6 +517,13 @@ Y asi por cada año del 2021 al 2022
             return self._search_rentability_semantic(arguments)
         elif function_name == "get_comprehensive_analysis":
             return self._get_comprehensive_analysis(arguments)
+        # ✅ NUEVAS FUNCIONES ENHANCED
+        elif function_name == "get_rentability_by_calculation_type":
+            return self._get_rentability_by_calculation_type(arguments)
+        elif function_name == "compare_accumulated_vs_annualized":
+            return self._compare_accumulated_vs_annualized(arguments)
+        elif function_name == "get_calculation_types_summary":
+            return self._get_calculation_types_summary(arguments)
         else:
             return {"error": f"Función {function_name} no encontrada"}
 
@@ -540,6 +644,63 @@ Y asi por cada año del 2021 al 2022
             return self.get_response()
         else:
             return f"Error: {run.status}"
+
+    # ==================================================
+    # ✅ NUEVOS METODOS
+
+    def _get_rentability_by_calculation_type(self, args: Dict) -> Dict:
+        """Obtiene datos de rentabilidad por tipo de cálculo usando el gestor de datos mejorado"""
+        afp_name = args.get("afp_name", "")
+        fund_type = args.get("fund_type", 0)
+        period = args.get("period")
+        calculation_type = args.get("calculation_type", "both")
+
+        # Usar método mejorado si está disponible
+        if hasattr(self.data_manager, "get_rentability_by_afp_enhanced"):
+            return self.data_manager.get_rentability_by_afp_enhanced(
+                afp_name, fund_type, period, calculation_type
+            )
+        else:
+            # Fallback al método original
+            return self.data_manager.get_rentability_by_afp(afp_name, fund_type, period)
+
+    def _compare_accumulated_vs_annualized(self, args: Dict) -> Dict:
+        """Compara rentabilidad acumulada vs anualizada para una AFP"""
+        afp_name = args.get("afp_name", "")
+        fund_type = args.get("fund_type", 0)
+        period = args.get("period")
+
+        # Usar método mejorado si está disponible
+        if hasattr(self.data_manager, "get_detailed_rentability_comparison"):
+            return self.data_manager.get_detailed_rentability_comparison(
+                afp_name, fund_type, period
+            )
+        else:
+            # Crear comparación básica usando métodos existentes
+            acc_data = self.data_manager.get_rentability_by_afp(
+                afp_name, fund_type, period
+            )
+            return {
+                "afp_name": afp_name,
+                "fund_type": fund_type,
+                "period": period,
+                "data": acc_data,
+                "note": "Comparación detallada no disponible - datos en formato legacy",
+            }
+
+    def _get_calculation_types_summary(self, args: Dict) -> Dict:
+        """Obtiene resumen de tipos de cálculo disponibles"""
+        # Usar método mejorado si está disponible
+        if hasattr(self.data_manager, "get_calculation_types_summary"):
+            return self.data_manager.get_calculation_types_summary()
+        else:
+            # Resumen básico usando métodos existentes
+            stats = self.data_manager.get_summary_statistics()
+            return {
+                "summary": "Datos en formato legacy disponibles",
+                "total_files": stats.get("total_files_processed", 0),
+                "note": "Funcionalidad enhanced no disponible con data manager actual",
+            }
 
 
 # Función para Azure Functions
