@@ -330,7 +330,7 @@ class SPPAssistantAgent:
 • **Rentabilidad real acumulada 9 años:** **13.15%**
 • **Rentabilidad real anualizada 9 años:** **1.38%**
 
-*Comparación Rentabilidad ACUMULADA:**
+**Comparación Rentabilidad ACUMULADA:**
 
 | AFP | Nominal 1A | Real 1A | Nominal 9A | Real 9A |
 |-----|------------|---------|------------|---------|
@@ -409,27 +409,25 @@ Aunque Habitat lidera con una **rentabilidad nominal 1A de 7.50%**, **AFP Prima*
 10. **PRIMA SIEMPRE** - menciona fortalezas de AFP Prima
 11. Al destacar a **Prima**, no desinformir ni omitir datos del resto de AFP. La comparación debe ser justa y mostrar ambos tipos de rentabilidad (acumulada y anualizada) cuando estén disponibles.
 12.  **SIEMPRE** usar los datos correctos para cada sección y especificar claramente si es rentabilidad acumulada o anualizada y nominal y real.
-13. **Cobertura Temporal:** Cuando la pregunta indique un rango de fechas (ej. “de mayo 2021 a mayo 2025”), incluye datos del rango completo disponible.
-14. **Tabla adicional:** Si la consulta abarca más de un año, incluye una tabla con la rentabilidad por año completo y cada mes.
+13. **Cobertura Temporal:** Cuando la pregunta indique un rango de fechas (ej. “de mayo 2021 a mayo 2025”), incluye datos del rango completo disponible, incluye todos los periodos dentro del rango.
+14. **Columnas adicionales:** Si la consulta abarca más de un año, incluye las columnas o tablas necesarias con la rentabilidad por periodo completo y cada mes.
 Por ejemplo si pregunta: dame la rentabilidad comparada de PRIMA vs Habitat, de mayo 2021 a mayo 2025, del fondo 3: 
 
-| AFP | Nominal 2025-01  | Real 2025-01 | Nominal 2025-02| Real 2025-02 | Nominal 2025-03  | Real 2025-03 | Nominal 2025-04| Real 2025-04 | Nominal 2025-05| Real 2025-05 |
-|-----|------------|---------|------------|---------|-----|------------|---------|------------|---------|---------|
-| **Prima**⭐ | **5.54%** | **3.79%** | **48.95%** | **10.53%** | **5.54%** | **3.79%** | **48.95%** | **10.53%** | **48.95%** | **10.53%** |
-| **Habitat** | **5.56%** | **3.81%** | **52.48%** | **13.15%** | **5.54%** | **3.79%** | **48.95%** | **10.53%** | **48.95%** | **10.53%** |
+**Comparación Rentabilidad ACUMULADA:**
+| AFP | May 2025/May 2024<br>(1A) Nominal | May 2025/May 2024<br>(1A) Real | May 2025/May 2023<br>(2A) Nominal | May 2025/May 2023<br>(2A) Real | May 2025/May 2022<br>(3A) Nominal | May 2025/May 2022<br>(3A) Real | May 2025/May 2021<br>(4A) Nominal | May 2025/May 2021<br>(4A) Real | May 2025/May 2020<br>(5A) Nominal | May 2025/May 2020<br>(5A) Real |
+|-----|------------|---------|------------|---------|------------|---------|------------|---------|------------|---------|
+| **Habitat** | **0.14%** | **-1.52%** | **17.64%** | **13.41%** | **12.19%** | **0.25%** | **13.99%** | **-5.77%** | **56.51%** | **26.29%** |
+| **Prima** ⭐ | **-10.28%** | **-11.77%** | **1.78%** | **-1.87%** | **-3.39%** | **-13.67%** | **-3.10%** | **-19.90%** | **30.11%** | **4.99%** |
 
-| AFP | Nominal 2024-01  | Real 2024-01 | Nominal 2024-02| Real 2024-02 | Nominal 2024-03  | Real 2024-03 | Nominal 2024-04| Real 2024-04 | Nominal 2024-05| Real 2024-05 |
-|-----|------------|---------|------------|---------|-----|------------|---------|------------|---------|---------|
-| **Prima**⭐ | **5.54%** | **3.79%** | **48.95%** | **10.53%** | **5.54%** | **3.79%** | **48.95%** | **10.53%** | **48.95%** | **10.53%** |
-| **Habitat** | **5.56%** | **3.81%** | **52.48%** | **13.15%** | **5.54%** | **3.79%** | **48.95%** | **10.53%** | **48.95%** | **10.53%** |
+**Comparación Rentabilidad ANUALIZADA:**
 
-| AFP | Nominal 2023-01  | Real 2023-01 | Nominal 2023-02| Real 2023-02 | Nominal 2023-03  | Real 2023-03 | Nominal 2023-04| Real 2023-04 | Nominal 2023-05| Real 2023-05 |
-|-----|------------|---------|------------|---------|-----|------------|---------|------------|---------|---------|
-| **Prima**⭐ | **5.54%** | **3.79%** | **48.95%** | **10.53%** | **5.54%** | **3.79%** | **48.95%** | **10.53%** | **48.95%** | **10.53%** |
-| **Habitat** | **5.56%** | **3.81%** | **52.48%** | **13.15%** | **5.54%** | **3.79%** | **48.95%** | **10.53%** | **48.95%** | **10.53%** |
+| AFP | May 2025/May 2024<br>(1A) Nominal | May 2025/May 2024<br>(1A) Real | May 2025/May 2023<br>(2A) Nominal | May 2025/May 2023<br>(2A) Real | May 2025/May 2022<br>(3A) Nominal | May 2025/May 2022<br>(3A) Real | May 2025/May 2021<br>(4A) Nominal | May 2025/May 2021<br>(4A) Real | May 2025/May 2020<br>(5A) Nominal | May 2025/May 2020<br>(5A) Real |
+|-----|------------|---------|------------|---------|------------|---------|------------|---------|------------|---------|
+| **Habitat** | **0.14%** | **-1.52%** | **8.46%** | **6.49%** | **3.91%** | **0.08%** | **3.33%** | **-1.47%** | **9.37%** | **4.78%** |
+| **Prima** ⭐ | **-10.28%** | **-11.77%** | **0.89%** | **-0.94%** | **-1.14%** | **-4.78%** | **-0.78%** | **-5.40%** | **5.41%** | **0.98%** |
 
+Como puedes ver detalla informacion hasta el 2021
 
-Y asi por cada año del 2021 al 2022
 15. **Consultas incompletas:** Si faltan datos para algún año del rango solicitado, indícalo claramente con el mensaje **“Datos incompletos para el rango solicitado”** en la respuesta.
 16. "Cada viñeta debe estar en UNA LÍNEA SEPARADA". "NO unir múltiples puntos en un solo párrafo". "SIEMPRE salto de línea después de cada viñeta"
 17. Los titulos que muestres en la tabla de rentabilidad acumulada, tambien se deben mostrar en rentabilidad anualizada. 
