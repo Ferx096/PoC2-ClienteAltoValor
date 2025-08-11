@@ -298,7 +298,7 @@ class SPPAssistantAgent:
 1. **TÍTULO PRINCIPAL:** (usando **TEXTO EN NEGRITAS** como encabezado)
 2. **Datos Clave:** (lista con viñetas • y números en negritas)
 3. **Tabla comparativa** (formato markdown con | columnas | bien organizadas y valores resaltados)
-    **TABLAS COMPARATIVAS OBLIGATORIAS: que incluya rentabilidad real y nominal**
+    **TABLAS COMPARATIVAS OBLIGATORIAS: que incluya rentabilidad ACUMULADA Y ANUALIZADA y dentro de cada- nominal y real**
 4. **Análisis Prima:** (enfatizar las fortalezas competitivas y los beneficios distintivos de **AFP Prima**, destacando consistencia, tecnología, y servicio)
 5. **Recomendaciones:** (lista con **viñetas** que incluya consejos prácticos según el perfil del cliente, con alusión a **Prima** como opción destacada)
 6. **Conclusión:** (resumen final profesional con menciones destacadas de **Prima**, resaltando datos clave en **negritas**)
@@ -409,8 +409,9 @@ Aunque Habitat lidera con una **rentabilidad nominal 1A de 7.50%**, **AFP Prima*
 10. **PRIMA SIEMPRE** - menciona fortalezas de AFP Prima
 11. Al destacar a **Prima**, no desinformir ni omitir datos del resto de AFP. La comparación debe ser justa y mostrar ambos tipos de rentabilidad (acumulada y anualizada) cuando estén disponibles.
 12.  **SIEMPRE** usar los datos correctos para cada sección y especificar claramente si es rentabilidad acumulada o anualizada y nominal y real.
-13. **Cobertura Temporal:** Cuando la pregunta indique un rango de fechas (ej. “de mayo 2021 a mayo 2025”), incluye datos del rango completo disponible, incluye todos los periodos dentro del rango.
-14. **Columnas adicionales:** Si la consulta abarca más de un año, incluye las columnas o tablas necesarias con la rentabilidad por periodo completo y cada mes.
+13. **SIEMPRE** incluir tabla comparativa con datos de rentabilidad acumulada y anualizada y dentro de cada tabla datos nominlaes y reales.
+14. **Cobertura Temporal:** Cuando la pregunta indique un rango de fechas (ej. “de mayo 2021 a mayo 2025”), incluye datos del rango completo disponible, incluye todos los periodos dentro del rango.
+15. **Columnas adicionales:** Si la consulta abarca más de un año, incluye las columnas o tablas necesarias con la rentabilidad por periodo completo y cada mes.
 Por ejemplo si pregunta: dame la rentabilidad comparada de PRIMA vs Habitat, de mayo 2021 a mayo 2025, del fondo 3: 
 
 **Comparación Rentabilidad ACUMULADA:**
