@@ -256,7 +256,7 @@ class ExcelProcessor:
                 # Detectar tabla ACUMULADA
                 if any(
                     keyword in cell_value
-                    for keyword in ["ACUMULAD", "ACUMULA", "ACCUMULATED"]
+                    for keyword in ["ACUMULAD", "ACUMULA", "ACCUMULATED", "Acumulada", "ACUMULADA"]
                 ):
                     table_locations["accumulated"] = {
                         "start_row": i,
@@ -269,7 +269,7 @@ class ExcelProcessor:
                 # Detectar tabla ANUALIZADA
                 elif any(
                     keyword in cell_value
-                    for keyword in ["ANUALIZ", "ANUALI", "ANNUALIZED", "ANUAL"]
+                    for keyword in ["ANUALIZ", "ANUALI", "ANNUALIZED", "ANUAL", "ANUALIZADA", "Anualizada"]
                 ):
                     table_locations["annualized"] = {
                         "start_row": i,
@@ -678,7 +678,7 @@ class ExcelProcessor:
                     period_key VARCHAR(50),
                     rentability_value FLOAT,
                     rentability_type VARCHAR(10), -- 'nominal' or 'real'
-                    calculation_type VARCHAR(20), -- 'accumulated' or 'annualized'
+                    calculation_type VARCHAR(20), -- 'acumulada' or 'anualizada', 'accumulated' or 'annualized'
                     created_at DATETIME DEFAULT GETDATE()
                 )
             """
