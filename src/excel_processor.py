@@ -210,68 +210,139 @@ class ExcelProcessor:
             extracted["periods_available"] = periods
             extracted["period_labels"] = period_labels
 
-            # Extraer datos de AFPs (filas 7-10 aproximadamente)
+            # Extraer datos de AFPs - AMBAS SECCIONES: ACUMULADA Y ANUALIZADA
             afp_names = ["Habitat", "Integra", "Prima", "Profuturo"]
+            
+            # Buscar secciones de rentabilidad acumulada y anualizada
+            accumulated_section_start = None
+            annualized_section_start = None
+            
+            for row_idx in range(df.shape[0]):
+                cell_value = str(df.iloc[row_idx, 0]).lower()
+                if "rentabilidad" in cell_value and "acumulada" in cell_value:
+                    accumulated_section_start = row_idx
+                elif "rentabilidad" in cell_value and "anualizada" in cell_value:
+                    annualized_section_start = row_idx
+            
+            # Procesar sección ACUMULADA (filas 7-10 aproximadamente)
+            if accumulated_section_start is not None:
+                for idx in range(accumulated_section_start + 6, min(accumulated_section_start + 10, len(df))):
+                    afp_name_cell = str(df.iloc[idx, 0])
 
-            for idx in range(7, min(11, len(df))):
-                afp_name_cell = str(df.iloc[idx, 0])
+                    for afp in afp_names:
+                        if afp.lower() in afp_name_cell.lower():
+                            # Buscar si ya existe esta AFP en los datos extraídos
+                            afp_data = None
+                            for existing_afp in extracted["afp_data"]:
+                                if existing_afp["afp_name"] == afp:
+                                    afp_data = existing_afp
+                                    break
+                            
+                            if afp_data is None:
+                                afp_data = {"afp_name": afp, "rentability_data": {}}
+                                extracted["afp_data"].append(afp_data)
 
-                for afp in afp_names:
-                    if afp.lower() in afp_name_cell.lower():
-                        afp_data = {"afp_name": afp, "rentability_data": {}}
+                            # Extraer datos de rentabilidad ACUMULADA por período
+                            col_idx = 1
+                            for i, period in enumerate(periods):
+                                if col_idx < df.shape[1]:
+                                    # RENTABILIDAD NOMINAL ACUMULADA
+                                    nominal_val = df.iloc[idx, col_idx]
+                                    if self._is_valid_numeric_value(nominal_val):
+                                        nominal_float = self._convert_to_float(nominal_val)
+                                        if nominal_float is not None:
+                                            # Guardar con claves específicas para acumulada
+                                            period_key = f"period_{i+1}_accumulated_nominal"
+                                            afp_data["rentability_data"][period_key] = nominal_float
+                                            afp_data["rentability_data"][f"{period}_accumulated_nominal"] = nominal_float
+                                            
+                                            # También mantener claves originales para compatibilidad
+                                            afp_data["rentability_data"][f"period_{i+1}_nominal"] = nominal_float
+                                            afp_data["rentability_data"][f"{period}_nominal"] = nominal_float
 
-                        # Extraer datos de rentabilidad por período - estructura real
-                        col_idx = 1
-                        for i, period in enumerate(periods):
-                            if col_idx < df.shape[1]:
-                                # ✅ RENTABILIDAD NOMINAL - CON FILTRADO MEJORADO
-                                nominal_val = df.iloc[idx, col_idx]
-                                if self._is_valid_numeric_value(nominal_val):
-                                    nominal_float = self._convert_to_float(nominal_val)
-                                    if nominal_float is not None:
-                                        # Guardar con múltiples claves para facilitar búsqueda
-                                        period_key = f"period_{i+1}_nominal"
-                                        afp_data["rentability_data"][
-                                            period_key
-                                        ] = nominal_float
-                                        afp_data["rentability_data"][
-                                            f"{period}_nominal"
-                                        ] = nominal_float
-
-                                        # También guardar con clave descriptiva
-                                        if i < len(period_labels):
-                                            label_key = f"{period_labels[i]}_nominal"
-                                            afp_data["rentability_data"][
-                                                label_key
-                                            ] = nominal_float
-
-                                # ✅ RENTABILIDAD REAL - CON FILTRADO MEJORADO
-                                if col_idx + 1 < df.shape[1]:
-                                    real_val = df.iloc[idx, col_idx + 1]
-                                    if self._is_valid_numeric_value(real_val):
-                                        real_float = self._convert_to_float(real_val)
-                                        if real_float is not None:
-                                            # Guardar con múltiples claves para facilitar búsqueda
-                                            period_key = f"period_{i+1}_real"
-                                            afp_data["rentability_data"][
-                                                period_key
-                                            ] = real_float
-                                            afp_data["rentability_data"][
-                                                f"{period}_real"
-                                            ] = real_float
-
-                                            # También guardar con clave descriptiva
                                             if i < len(period_labels):
-                                                label_key = f"{period_labels[i]}_real"
-                                                afp_data["rentability_data"][
-                                                    label_key
-                                                ] = real_float
+                                                label_key = f"{period_labels[i]}_accumulated_nominal"
+                                                afp_data["rentability_data"][label_key] = nominal_float
+                                                # Mantener compatibilidad
+                                                afp_data["rentability_data"][f"{period_labels[i]}_nominal"] = nominal_float
 
-                                col_idx += 2
+                                    # RENTABILIDAD REAL ACUMULADA
+                                    if col_idx + 1 < df.shape[1]:
+                                        real_val = df.iloc[idx, col_idx + 1]
+                                        if self._is_valid_numeric_value(real_val):
+                                            real_float = self._convert_to_float(real_val)
+                                            if real_float is not None:
+                                                # Guardar con claves específicas para acumulada
+                                                period_key = f"period_{i+1}_accumulated_real"
+                                                afp_data["rentability_data"][period_key] = real_float
+                                                afp_data["rentability_data"][f"{period}_accumulated_real"] = real_float
+                                                
+                                                # También mantener claves originales para compatibilidad
+                                                afp_data["rentability_data"][f"period_{i+1}_real"] = real_float
+                                                afp_data["rentability_data"][f"{period}_real"] = real_float
 
-                        if afp_data["rentability_data"]:
-                            extracted["afp_data"].append(afp_data)
-                        break
+                                                if i < len(period_labels):
+                                                    label_key = f"{period_labels[i]}_accumulated_real"
+                                                    afp_data["rentability_data"][label_key] = real_float
+                                                    # Mantener compatibilidad
+                                                    afp_data["rentability_data"][f"{period_labels[i]}_real"] = real_float
+
+                                    col_idx += 2
+                            break
+
+            # Procesar sección ANUALIZADA (filas 21-24 aproximadamente)
+            if annualized_section_start is not None:
+                for idx in range(annualized_section_start + 6, min(annualized_section_start + 10, len(df))):
+                    afp_name_cell = str(df.iloc[idx, 0])
+
+                    for afp in afp_names:
+                        if afp.lower() in afp_name_cell.lower():
+                            # Buscar la AFP existente en los datos extraídos
+                            afp_data = None
+                            for existing_afp in extracted["afp_data"]:
+                                if existing_afp["afp_name"] == afp:
+                                    afp_data = existing_afp
+                                    break
+                            
+                            if afp_data is None:
+                                afp_data = {"afp_name": afp, "rentability_data": {}}
+                                extracted["afp_data"].append(afp_data)
+
+                            # Extraer datos de rentabilidad ANUALIZADA por período
+                            col_idx = 1
+                            for i, period in enumerate(periods):
+                                if col_idx < df.shape[1]:
+                                    # RENTABILIDAD NOMINAL ANUALIZADA
+                                    nominal_val = df.iloc[idx, col_idx]
+                                    if self._is_valid_numeric_value(nominal_val):
+                                        nominal_float = self._convert_to_float(nominal_val)
+                                        if nominal_float is not None:
+                                            # Guardar con claves específicas para anualizada
+                                            period_key = f"period_{i+1}_annualized_nominal"
+                                            afp_data["rentability_data"][period_key] = nominal_float
+                                            afp_data["rentability_data"][f"{period}_annualized_nominal"] = nominal_float
+
+                                            if i < len(period_labels):
+                                                label_key = f"{period_labels[i]}_annualized_nominal"
+                                                afp_data["rentability_data"][label_key] = nominal_float
+
+                                    # RENTABILIDAD REAL ANUALIZADA
+                                    if col_idx + 1 < df.shape[1]:
+                                        real_val = df.iloc[idx, col_idx + 1]
+                                        if self._is_valid_numeric_value(real_val):
+                                            real_float = self._convert_to_float(real_val)
+                                            if real_float is not None:
+                                                # Guardar con claves específicas para anualizada
+                                                period_key = f"period_{i+1}_annualized_real"
+                                                afp_data["rentability_data"][period_key] = real_float
+                                                afp_data["rentability_data"][f"{period}_annualized_real"] = real_float
+
+                                                if i < len(period_labels):
+                                                    label_key = f"{period_labels[i]}_annualized_real"
+                                                    afp_data["rentability_data"][label_key] = real_float
+
+                                    col_idx += 2
+                            break
 
             logging.info(
                 f"Extraídos datos para {len(extracted['afp_data'])} AFPs del archivo {filename}"
