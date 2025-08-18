@@ -286,30 +286,54 @@ class ExcelProcessor:
                 ):
                     table_locations["annualized"] = {
                         "start_row": i,
-                        "header_row": i + 2,
-                        "data_start_row": i + 5,
+                        "header_row": i + 3,
+                        "data_start_row": i + 6,
                         "type": "annualized",
                     }
                     logging.info(f"Tabla ANUALIZADA detectada en fila {i}")
 
         # Si no se detectan automáticamente, usar ubicaciones predeterminadas
         if not table_locations:
-            # Ubicaciones típicas basadas en estructura común
-            table_locations = {
-                "accumulated": {
-                    "start_row": 3,
-                    "header_row": 4,
-                    "data_start_row": 7,
-                    "type": "accumulated",
-                },
-                "annualized": {
-                    "start_row": 15,  # Tabla inferior típicamente empieza en fila 15+
-                    "header_row": 16,
-                    "data_start_row": 19,
-                    "type": "annualized",
-                },
-            }
-            logging.info("Usando ubicaciones predeterminadas para las tablas")
+            logging.warning(
+                "🔍 No se detectaron tablas automáticamente, usando ubicaciones estimadas"
+            )
+            # Buscar la primera tabla (usualmente acumulada)
+            first_table_found = False
+            for i in range(5, 20):  # Buscar entre filas 5-20
+                row_content = " ".join(
+                    [str(df.iloc[i, j]) for j in range(min(10, df.shape[1]))]
+                )
+                if "AFP" in row_content.upper() and any(
+                    char.isdigit() for char in row_content
+                ):
+                    table_locations["accumulated"] = {
+                        "start_row": i - 3,
+                        "header_row": i - 1,
+                        "data_start_row": i,
+                        "type": "accumulated",
+                    }
+                    first_table_found = True
+                    logging.info(f"✅ Tabla ACUMULADA estimada en fila {i}")
+                    break
+
+            # Buscar la segunda tabla (usualmente anualizada) después de la primera
+            if first_table_found:
+                search_start = table_locations["accumulated"]["data_start_row"] + 10
+                for i in range(search_start, min(search_start + 30, len(df))):
+                    row_content = " ".join(
+                        [str(df.iloc[i, j]) for j in range(min(10, df.shape[1]))]
+                    )
+                    if "AFP" in row_content.upper() and any(
+                        char.isdigit() for char in row_content
+                    ):
+                        table_locations["annualized"] = {
+                            "start_row": i - 3,
+                            "header_row": i - 1,
+                            "data_start_row": i,
+                            "type": "annualized",
+                        }
+                        logging.info(f"✅ Tabla ANUALIZADA estimada en fila {i}")
+                        break
 
         return table_locations
 
@@ -321,90 +345,133 @@ class ExcelProcessor:
         """
         try:
             start_row = table_info["data_start_row"]
+            header_row = table_info["header_row"]
             afp_data = []
 
             # Extraer períodos disponibles de las columnas (header_row)
             periods = []
-            header_row = table_info["header_row"]
+            period_columns = []
 
-            for col in range(1, df.shape[1], 2):  # Cada 2 columnas (nominal y real)
-                if col < df.shape[1]:
-                    period_cell = str(df.iloc[header_row, col])
-                    if "/" in period_cell and any(
-                        char.isdigit() for char in period_cell
-                    ):
-                        periods.append(period_cell.strip())
+            # Buscar períodos en múltiples filas de header
+            for header_offset in [0, -1, -2, 1]:  # Verificar filas adyacentes
+                check_row = header_row + header_offset
+                if 0 <= check_row < len(df):
+                    for col in range(1, min(30, df.shape[1])):
+                        cell_value = str(df.iloc[check_row, col]).strip()
 
-            # Extraer datos de AFPs
-            afp_names = ["Habitat", "Integra", "Prima", "Profuturo"]
+                        # Detectar patrones de período
+                        if (
+                            (
+                                "/" in cell_value
+                                and any(char.isdigit() for char in cell_value)
+                            )
+                            or ("20" in cell_value and len(cell_value) >= 4)
+                            or any(
+                                year in cell_value
+                                for year in [
+                                    "2020",
+                                    "2021",
+                                    "2022",
+                                    "2023",
+                                    "2024",
+                                    "2025",
+                                ]
+                            )
+                        ):
 
-            for idx in range(
-                start_row, min(start_row + 6, len(df))
-            ):  # Máximo 6 filas después del inicio
-                afp_name_cell = str(df.iloc[idx, 0])
+                            if cell_value not in periods:
+                                periods.append(cell_value)
+                                period_columns.append(col)
+                                logging.info(
+                                    f"📅 Período encontrado: {cell_value} en columna {col}"
+                                )
+
+            if not periods:
+                # Fallback: usar estructura estándar
+                logging.warning(
+                    f"⚠️ No se encontraron períodos en headers, usando estructura estándar"
+                )
+                periods = ["1 año", "2 años", "3 años", "5 años", "9 años"]
+                period_columns = [1, 3, 5, 7, 9]  # Columnas estándar
+
+            # ✅ FIXED: Extraer datos de AFPs con mejor detección
+            afp_names = ["HABITAT", "INTEGRA", "PRIMA", "PROFUTURO"]
+
+            # Buscar AFPs en un rango más amplio
+            for idx in range(start_row, min(start_row + 15, len(df))):
+                if idx >= len(df):
+                    break
+
+                row_content = str(df.iloc[idx, 0]).upper().strip()
 
                 for afp in afp_names:
-                    if afp.lower() in afp_name_cell.lower():
+                    if afp in row_content:
+                        logging.info(f"🏦 Procesando AFP {afp} en fila {idx}")
+
                         afp_rentability = {
-                            "afp_name": afp,
-                            "table_type": table_type,  # ✅ "accumulated" o "annualized"
+                            "afp_name": afp.title(),
+                            "table_type": table_type,
                             "rentability_data": {},
                         }
 
-                        # Extraer datos de rentabilidad por período
-                        col_idx = 1
+                        # ✅ FIXED: Extraer datos con múltiples patrones de columnas
                         for i, period in enumerate(periods):
-                            if col_idx < df.shape[1]:
-                                # ✅ RENTABILIDAD NOMINAL
-                                nominal_val = df.iloc[idx, col_idx]
-                                if self._is_valid_numeric_value(nominal_val):
-                                    nominal_float = self._convert_to_float(nominal_val)
-                                    if nominal_float is not None:
-                                        # Claves con tipo de tabla
-                                        key_base = f"period_{i+1}_{table_type}_nominal"
-                                        afp_rentability["rentability_data"][
-                                            key_base
-                                        ] = nominal_float
+                            if i < len(period_columns):
+                                base_col = period_columns[i]
+                            else:
+                                base_col = 1 + (i * 2)  # Fallback a patrón estándar
 
-                                        # Clave alternativa con período
-                                        alt_key = f"{period}_{table_type}_nominal"
-                                        afp_rentability["rentability_data"][
-                                            alt_key
-                                        ] = nominal_float
+                            # Extraer rentabilidad nominal y real
+                            for col_offset, rent_type in [(0, "nominal"), (1, "real")]:
+                                col_idx = base_col + col_offset
 
-                                # ✅ RENTABILIDAD REAL
-                                if col_idx + 1 < df.shape[1]:
-                                    real_val = df.iloc[idx, col_idx + 1]
-                                    if self._is_valid_numeric_value(real_val):
-                                        real_float = self._convert_to_float(real_val)
-                                        if real_float is not None:
-                                            key_base = f"period_{i+1}_{table_type}_real"
+                                if col_idx < df.shape[1]:
+                                    cell_value = df.iloc[idx, col_idx]
+
+                                    if self._is_valid_numeric_value(cell_value):
+                                        numeric_value = self._convert_to_float(
+                                            cell_value
+                                        )
+
+                                        if numeric_value is not None:
+                                            # ✅ FIXED: Crear claves mejoradas
+                                            key_with_type = (
+                                                f"period_{i+1}_{table_type}_{rent_type}"
+                                            )
+                                            key_with_period = (
+                                                f"{period}_{table_type}_{rent_type}"
+                                            )
+
                                             afp_rentability["rentability_data"][
-                                                key_base
-                                            ] = real_float
-
-                                            alt_key = f"{period}_{table_type}_real"
+                                                key_with_type
+                                            ] = numeric_value
                                             afp_rentability["rentability_data"][
-                                                alt_key
-                                            ] = real_float
+                                                key_with_period
+                                            ] = numeric_value
 
-                                col_idx += 2
+                                            logging.info(
+                                                f"📊 {afp} {period} {rent_type} ({table_type}): {numeric_value:.2f}%"
+                                            )
 
                         if afp_rentability["rentability_data"]:
                             afp_data.append(afp_rentability)
                         break
 
+            logging.info(
+                f"✅ Tabla {table_type} procesada: {len(afp_data)} AFPs extraídas"
+            )
             return afp_data
 
         except Exception as e:
-            logging.error(f"Error extrayendo tabla {table_type}: {str(e)}")
+            logging.error(f"❌ Error extrayendo tabla {table_type}: {str(e)}")
             return []
 
     def _combine_accumulated_and_annualized_data(
         self, acc_data: List[Dict], ann_data: List[Dict]
     ) -> List[Dict]:
         """
-        ✅ Combina datos de rentabilidad ACUMULADA y ANUALIZADA por AFP
+        ✅ FIXED: Combina datos de rentabilidad ACUMULADA y ANUALIZADA por AFP
+        Mejorado para garantizar que ambos tipos se incluyan correctamente
         """
         combined_data = []
         afp_names = ["Habitat", "Integra", "Prima", "Profuturo"]
@@ -412,10 +479,12 @@ class ExcelProcessor:
         for afp in afp_names:
             # Buscar datos de esta AFP en ambas tablas
             acc_afp_data = next(
-                (item for item in acc_data if item["afp_name"] == afp), None
+                (item for item in acc_data if item["afp_name"].upper() == afp.upper()),
+                None,
             )
             ann_afp_data = next(
-                (item for item in ann_data if item["afp_name"] == afp), None
+                (item for item in ann_data if item["afp_name"].upper() == afp.upper()),
+                None,
             )
 
             if acc_afp_data or ann_afp_data:
@@ -425,7 +494,7 @@ class ExcelProcessor:
                     "data_sources": [],
                 }
 
-                # ✅ Agregar datos ACUMULADOS
+                # ✅ FIXED: Agregar datos ACUMULADOS
                 if acc_afp_data:
                     combined_afp["rentability_data"].update(
                         acc_afp_data["rentability_data"]
@@ -439,14 +508,45 @@ class ExcelProcessor:
                             original_key = key.replace("_accumulated", "")
                             combined_afp["rentability_data"][original_key] = value
 
-                # ✅ Agregar datos ANUALIZADOS
+                    logging.info(
+                        f"✅ {afp}: {len(acc_afp_data['rentability_data'])} datos acumulados agregados"
+                    )
+
+                # ✅ FIXED: Agregar datos ANUALIZADOS
                 if ann_afp_data:
                     combined_afp["rentability_data"].update(
                         ann_afp_data["rentability_data"]
                     )
                     combined_afp["data_sources"].append("annualized")
 
+                    logging.info(
+                        f"✅ {afp}: {len(ann_afp_data['rentability_data'])} datos anualizados agregados"
+                    )
+                else:
+                    logging.warning(f"⚠️ {afp}: No se encontraron datos anualizados")
+
                 combined_data.append(combined_afp)
+
+                # Log resumen por AFP
+                total_keys = len(combined_afp["rentability_data"])
+                acc_keys = len(
+                    [
+                        k
+                        for k in combined_afp["rentability_data"].keys()
+                        if "accumulated" in k
+                    ]
+                )
+                ann_keys = len(
+                    [
+                        k
+                        for k in combined_afp["rentability_data"].keys()
+                        if "annualized" in k
+                    ]
+                )
+
+                logging.info(
+                    f"📊 {afp} RESUMEN: {total_keys} total, {acc_keys} acumulados, {ann_keys} anualizados"
+                )
 
         return combined_data
 
@@ -460,27 +560,32 @@ class ExcelProcessor:
             "fund_type": None,
             "period": None,
             "afp_data": [],
-            "data_type": "rentability",
+            "data_type": "rentability_enhanced_fixed",
             "periods_available": [],
+            "rentability_type_info": {
+                "has_accumulated": False,
+                "has_annualized": False,
+                "table_locations": {},
+            },
         }
 
         try:
-            # Extraer tipo de fondo del nombre del archivo
+            # Extraer metadatos del archivo (sin cambios)
             fund_match = re.search(r"Tipo\s+(\d+)", filename)
             if fund_match:
                 extracted["fund_type"] = int(fund_match.group(1))
             else:
-                # Buscar patrones alternativos en el nombre del archivo
-                if "FP-1219-0" in filename:
+                # Patrones de archivos SPP
+                if "FP-1219-0" in filename or "FP12190" in filename:
                     extracted["fund_type"] = 0
-                elif "FP-1220-1" in filename:
+                elif "FP-1220-1" in filename or "FP12201" in filename:
                     extracted["fund_type"] = 1
-                elif "FP-1360" in filename:
+                elif "FP-1360" in filename or "FP1360" in filename:
                     extracted["fund_type"] = 2
-                elif "FP-1220-2" in filename:
+                elif "FP-1220-2" in filename or "FP12202" in filename:
                     extracted["fund_type"] = 3
 
-            # Extraer período del nombre del archivo
+            # Extraer período del archivo
             period_match = re.search(r"(\w{2})(\d{4})", filename)
             if period_match:
                 month_abbr = period_match.group(1)
@@ -501,101 +606,79 @@ class ExcelProcessor:
                 }
                 extracted["period"] = f"{year}-{month_map.get(month_abbr, '01')}"
 
-            # Extraer períodos disponibles de las columnas (fila 4 contiene los períodos)
-            periods = []
-            period_labels = []
-
-            # Buscar en la fila 4 los períodos - estructura real del Excel
-            for col in range(1, df.shape[1], 2):  # Cada 2 columnas (nominal y real)
-                if col < df.shape[1]:
-                    period_cell = str(df.iloc[4, col])
-                    if "/" in period_cell and any(
-                        char.isdigit() for char in period_cell
-                    ):
-                        periods.append(period_cell.strip())
-
-                        # Extraer la etiqueta del período de la fila 5
-                        if col < df.shape[1]:
-                            label_cell = str(df.iloc[5, col])
-                            if "año" in label_cell:
-                                period_labels.append(label_cell.strip())
-
-            extracted["periods_available"] = periods
-            extracted["period_labels"] = period_labels
-
-            # Extraer datos de AFPs (filas 7-10 aproximadamente)
-            afp_names = ["Habitat", "Integra", "Prima", "Profuturo"]
-
-            for idx in range(7, min(11, len(df))):
-                afp_name_cell = str(df.iloc[idx, 0])
-
-                for afp in afp_names:
-                    if afp.lower() in afp_name_cell.lower():
-                        afp_data = {"afp_name": afp, "rentability_data": {}}
-
-                        # Extraer datos de rentabilidad por período - estructura real
-                        col_idx = 1
-                        for i, period in enumerate(periods):
-                            if col_idx < df.shape[1]:
-                                # ✅ RENTABILIDAD NOMINAL - CON FILTRADO MEJORADO
-                                nominal_val = df.iloc[idx, col_idx]
-                                if self._is_valid_numeric_value(nominal_val):
-                                    nominal_float = self._convert_to_float(nominal_val)
-                                    if nominal_float is not None:
-                                        # Guardar con múltiples claves para facilitar búsqueda
-                                        period_key = f"period_{i+1}_nominal"
-                                        afp_data["rentability_data"][
-                                            period_key
-                                        ] = nominal_float
-                                        afp_data["rentability_data"][
-                                            f"{period}_nominal"
-                                        ] = nominal_float
-
-                                        # También guardar con clave descriptiva
-                                        if i < len(period_labels):
-                                            label_key = f"{period_labels[i]}_nominal"
-                                            afp_data["rentability_data"][
-                                                label_key
-                                            ] = nominal_float
-
-                                # ✅ RENTABILIDAD REAL - CON FILTRADO MEJORADO
-                                if col_idx + 1 < df.shape[1]:
-                                    real_val = df.iloc[idx, col_idx + 1]
-                                    if self._is_valid_numeric_value(real_val):
-                                        real_float = self._convert_to_float(real_val)
-                                        if real_float is not None:
-                                            # Guardar con múltiples claves para facilitar búsqueda
-                                            period_key = f"period_{i+1}_real"
-                                            afp_data["rentability_data"][
-                                                period_key
-                                            ] = real_float
-                                            afp_data["rentability_data"][
-                                                f"{period}_real"
-                                            ] = real_float
-
-                                            # También guardar con clave descriptiva
-                                            if i < len(period_labels):
-                                                label_key = f"{period_labels[i]}_real"
-                                                afp_data["rentability_data"][
-                                                    label_key
-                                                ] = real_float
-
-                                col_idx += 2
-
-                        if afp_data["rentability_data"]:
-                            extracted["afp_data"].append(afp_data)
-                        break
-
             logging.info(
-                f"Extraídos datos ORIGINALES para {len(extracted['afp_data'])} AFPs del archivo {filename}"
+                f"🔍 Procesando archivo: {filename} (Fondo: {extracted['fund_type']}, Período: {extracted['period']})"
             )
+
+            # ✅ FIXED: Detectar ubicación de las 2 tablas con método mejorado
+            table_locations = self._detect_table_locations(df)
+            extracted["rentability_type_info"]["table_locations"] = table_locations
+
+            acc_data = []
+            ann_data = []
+
+            # ✅ FIXED: Procesar TABLA ACUMULADA
+            if table_locations.get("accumulated"):
+                logging.info("🔄 Procesando tabla ACUMULADA...")
+                acc_data = self._extract_table_data(
+                    df, table_locations["accumulated"], "accumulated"
+                )
+                if acc_data:
+                    extracted["rentability_type_info"]["has_accumulated"] = True
+                    logging.info(f"✅ Tabla ACUMULADA: {len(acc_data)} AFPs procesadas")
+                else:
+                    logging.warning("⚠️ Tabla ACUMULADA: No se extrajeron datos")
+
+            # ✅ FIXED: Procesar TABLA ANUALIZADA
+            if table_locations.get("annualized"):
+                logging.info("🔄 Procesando tabla ANUALIZADA...")
+                ann_data = self._extract_table_data(
+                    df, table_locations["annualized"], "annualized"
+                )
+                if ann_data:
+                    extracted["rentability_type_info"]["has_annualized"] = True
+                    logging.info(
+                        f"✅ Tabla ANUALIZADA: {len(ann_data)} AFPs procesadas"
+                    )
+                else:
+                    logging.warning("⚠️ Tabla ANUALIZADA: No se extrajeron datos")
+
+            # ✅ FIXED: Combinar datos con método mejorado
+            extracted["afp_data"] = self._combine_accumulated_and_annualized_data(
+                acc_data, ann_data
+            )
+
+            # Verificar resultado final
+            if extracted["afp_data"]:
+                logging.info(
+                    f"🎉 ÉXITO: {len(extracted['afp_data'])} AFPs procesadas con datos enhanced"
+                )
+
+                # Log estadísticas detalladas
+                for afp_data in extracted["afp_data"]:
+                    afp_name = afp_data["afp_name"]
+                    sources = afp_data.get("data_sources", [])
+                    total_data = len(afp_data["rentability_data"])
+                    logging.info(
+                        f"📊 {afp_name}: {total_data} datos, fuentes: {sources}"
+                    )
+            else:
+                logging.warning(
+                    "⚠️ No se extrajeron datos enhanced, usando método fallback"
+                )
+                return self._extract_rentability_data_original(df, filename)
+
             return extracted
 
         except Exception as e:
-            logging.error(
-                f"Error extrayendo datos de rentabilidad ORIGINALES: {str(e)}"
-            )
-            return extracted
+            logging.error(f"❌ Error en extracción enhanced fixed: {str(e)}")
+            import traceback
+
+            logging.error(f"💥 Traceback: {traceback.format_exc()}")
+
+            # Fallback al método original
+            logging.warning("🔄 Usando método original como fallback...")
+            return self._extract_rentability_data_original(df, filename)
 
     def _extract_file_metadata(self, filename: str) -> Dict[str, Any]:
         """Extrae metadatos del nombre del archivo de rentabilidad"""
