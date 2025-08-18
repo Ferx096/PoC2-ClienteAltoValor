@@ -250,13 +250,19 @@ class ExcelProcessor:
 
         # Buscar indicadores de tablas en el Excel
         for i in range(min(30, len(df))):  # Buscar en las primeras 30 filas
-            for j in range(min(10, df.shape[1])):  # Primeras 10 columnas
+            for j in range(min(30, df.shape[1])):  # Primeras 10 columnas
                 cell_value = str(df.iloc[i, j]).upper().strip()
 
                 # Detectar tabla ACUMULADA
                 if any(
                     keyword in cell_value
-                    for keyword in ["ACUMULAD", "ACUMULA", "ACCUMULATED", "Acumulada", "ACUMULADA"]
+                    for keyword in [
+                        "ACUMULAD",
+                        "ACUMULA",
+                        "ACCUMULATED",
+                        "Acumulada",
+                        "ACUMULADA",
+                    ]
                 ):
                     table_locations["accumulated"] = {
                         "start_row": i,
@@ -269,7 +275,14 @@ class ExcelProcessor:
                 # Detectar tabla ANUALIZADA
                 elif any(
                     keyword in cell_value
-                    for keyword in ["ANUALIZ", "ANUALI", "ANNUALIZED", "ANUAL", "ANUALIZADA", "Anualizada"]
+                    for keyword in [
+                        "ANUALIZ",
+                        "ANUALI",
+                        "ANNUALIZED",
+                        "ANUAL",
+                        "ANUALIZADA",
+                        "Anualizada",
+                    ]
                 ):
                     table_locations["annualized"] = {
                         "start_row": i,
