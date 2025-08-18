@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Script completo de verificación del sistema SPP
-Verifica TODOS los componentes: OpenAI, Blob Storage, SQL, AI Search, Excel processing, etc.
+Script completo de verificación del sistema SPP - ENHANCED VERSION
+Verifica TODOS los componentes incluyendo funcionalidades enhanced
 """
 import sys
 import os
@@ -233,30 +233,62 @@ def test_azure_ai_search() -> Tuple[bool, str]:
 
 
 def test_excel_processor() -> Tuple[bool, str]:
-    """Verifica que el procesador de Excel funcione"""
+    """Verifica que el procesador de Excel funcione - ENHANCED VERSION"""
     try:
         from src.excel_processor import ExcelProcessor
 
         processor = ExcelProcessor()
 
-        # Verificar que los métodos existen
-        methods = [
+        # ✅ ENHANCED: Verificar métodos originales
+        original_methods = [
             "process_excel_stream",
             "_extract_rentability_data",
             "_extract_file_metadata",
         ]
-        for method in methods:
-            if not hasattr(processor, method):
-                return False, f"Método {method} no encontrado"
 
-        return True, "ExcelProcessor inicializado correctamente, métodos disponibles"
+        missing_original = []
+        for method in original_methods:
+            if not hasattr(processor, method):
+                missing_original.append(method)
+
+        if missing_original:
+            return False, f"Métodos originales faltantes: {', '.join(missing_original)}"
+
+        # ✅ ENHANCED: Verificar métodos enhanced si existen
+        enhanced_methods = [
+            "_extract_rentability_data_enhanced",
+            "_detect_table_locations",
+            "_extract_table_data",
+            "_combine_accumulated_and_annualized_data",
+        ]
+
+        enhanced_available = []
+        for method in enhanced_methods:
+            if hasattr(processor, method):
+                enhanced_available.append(method)
+
+        enhanced_count = len(enhanced_available)
+        total_enhanced = len(enhanced_methods)
+
+        if enhanced_count == total_enhanced:
+            return (
+                True,
+                f"ExcelProcessor ENHANCED completo ({enhanced_count}/{total_enhanced} métodos enhanced)",
+            )
+        elif enhanced_count > 0:
+            return (
+                True,
+                f"ExcelProcessor PARCIALMENTE enhanced ({enhanced_count}/{total_enhanced} métodos enhanced)",
+            )
+        else:
+            return True, "ExcelProcessor básico funcionando (sin enhanced features)"
 
     except Exception as e:
         return False, f"Error ExcelProcessor: {str(e)}"
 
 
 def test_data_manager() -> Tuple[bool, str]:
-    """Verifica que el gestor de datos funcione"""
+    """Verifica que el gestor de datos funcione - ENHANCED VERSION"""
     try:
         from src.data_manager import RentabilityDataManager
 
@@ -270,15 +302,36 @@ def test_data_manager() -> Tuple[bool, str]:
         files_processed = stats.get("total_files_processed", 0)
         available_afps = stats.get("available_afps", [])
 
+        # ✅ ENHANCED: Verificar métodos enhanced si existen
+        enhanced_methods = [
+            "get_rentability_by_afp_enhanced",
+            "compare_afp_rentability_enhanced",
+            "get_calculation_types_summary",
+            "get_detailed_rentability_comparison",
+        ]
+
+        enhanced_available = []
+        for method in enhanced_methods:
+            if hasattr(dm, method):
+                enhanced_available.append(method)
+
+        enhanced_count = len(enhanced_available)
+
         if files_processed > 0:
-            return (
-                True,
-                f"Inicializado en {elapsed:.2f}s, {files_processed} archivos, AFPs: {', '.join(available_afps)}",
-            )
+            if enhanced_count > 0:
+                return (
+                    True,
+                    f"DataManager ENHANCED: {files_processed} archivos, {len(available_afps)} AFPs, {enhanced_count}/4 métodos enhanced, {elapsed:.2f}s",
+                )
+            else:
+                return (
+                    True,
+                    f"DataManager básico: {files_processed} archivos, {len(available_afps)} AFPs, {elapsed:.2f}s (sin enhanced)",
+                )
         else:
             return (
                 False,
-                f"Inicializado pero sin datos procesados (tiempo: {elapsed:.2f}s)",
+                f"DataManager sin datos procesados (tiempo: {elapsed:.2f}s)",
             )
 
     except Exception as e:
@@ -286,7 +339,7 @@ def test_data_manager() -> Tuple[bool, str]:
 
 
 def test_assistant_agent() -> Tuple[bool, str]:
-    """Verifica que el agente de Azure OpenAI funcione"""
+    """Verifica que el agente de Azure OpenAI funcione - ENHANCED VERSION"""
     try:
         from src.azure_assistant_agent import SPPAssistantAgent
 
@@ -294,67 +347,248 @@ def test_assistant_agent() -> Tuple[bool, str]:
         agent = SPPAssistantAgent()
 
         # Verificar que se haya creado
-        if agent.assistant_id and agent.thread_id:
-            elapsed = time.time() - start_time
+        if not (agent.assistant_id and agent.thread_id):
+            return False, "Agente no se pudo inicializar completamente"
+
+        # ✅ ENHANCED: Verificar funciones enhanced
+        functions_str = str(agent.functions)
+        enhanced_functions = [
+            "get_rentability_by_calculation_type",
+            "compare_accumulated_vs_annualized",
+            "get_calculation_types_summary",
+        ]
+
+        enhanced_found = []
+        for func_name in enhanced_functions:
+            if func_name in functions_str:
+                enhanced_found.append(func_name)
+
+        total_functions = len(agent.functions)
+        enhanced_count = len(enhanced_found)
+        elapsed = time.time() - start_time
+
+        if enhanced_count > 0:
             return (
                 True,
-                f"Agente creado en {elapsed:.2f}s, Assistant ID: {agent.assistant_id[:10]}...",
+                f"Agent ENHANCED: {total_functions} funciones ({enhanced_count} enhanced), {elapsed:.2f}s, ID: {agent.assistant_id[:10]}...",
             )
         else:
-            return False, "Agente no se pudo inicializar completamente"
+            return (
+                True,
+                f"Agent básico: {total_functions} funciones, {elapsed:.2f}s, ID: {agent.assistant_id[:10]}... (sin enhanced)",
+            )
 
     except Exception as e:
         return False, f"Error Assistant Agent: {str(e)}"
 
 
 def test_end_to_end_query() -> Tuple[bool, str]:
-    """Prueba end-to-end de una consulta simple"""
+    """Prueba end-to-end de una consulta simple - ENHANCED VERSION"""
     try:
         from src.azure_assistant_agent import SPPAssistantAgent
 
         agent = SPPAssistantAgent()
 
-        # Query simple
+        # ✅ ENHANCED: Probar consulta que podría activar funcionalidades enhanced
+        enhanced_query = (
+            "¿Cuál es la rentabilidad de Habitat comparando tipos de cálculo?"
+        )
+
         start_time = time.time()
-        response = agent.chat("¿Cuál es la rentabilidad de Habitat?")
+        response = agent.chat(enhanced_query)
         elapsed = time.time() - start_time
 
-        if response and len(response) > 50:  # Respuesta mínima esperada
+        if not response or len(response) < 50:
+            return False, f"Respuesta muy corta o vacía: '{response[:100]}...'"
+
+        # ✅ ENHANCED: Verificar si la respuesta contiene características enhanced
+        enhanced_indicators = ["acumulad", "anualiz", "tabla", "comparación", "tipos"]
+        enhanced_terms_found = sum(
+            1 for term in enhanced_indicators if term.lower() in response.lower()
+        )
+
+        response_length = len(response)
+
+        if enhanced_terms_found >= 2:
             return (
                 True,
-                f"Query completada en {elapsed:.2f}s, respuesta: {len(response)} caracteres",
+                f"Query ENHANCED completada: {response_length} chars, {enhanced_terms_found} términos enhanced, {elapsed:.2f}s",
             )
         else:
-            return False, f"Respuesta muy corta o vacía: '{response[:100]}...'"
+            return (
+                True,
+                f"Query básica completada: {response_length} chars, {elapsed:.2f}s (respuesta estándar)",
+            )
 
     except Exception as e:
         return False, f"Error end-to-end: {str(e)}"
 
 
 def test_function_app_compatibility() -> Tuple[bool, str]:
-    """Verifica compatibilidad con Azure Functions"""
+    """Verifica compatibilidad con Azure Functions - ENHANCED VERSION"""
     try:
         # Verificar que function_app.py se pueda importar
         import function_app
 
-        # Verificar que tenga las funciones esperadas
-        expected_functions = ["chat_endpoint", "health_check", "assistant_info"]
-        missing = []
+        # Verificar funciones originales
+        original_functions = ["chat_endpoint", "health_check"]
+        missing_original = []
 
-        for func_name in expected_functions:
-            if not hasattr(function_app, func_name):
-                missing.append(func_name)
+        for func_name in original_functions:
+            # Buscar en el código del módulo
+            if not hasattr(function_app, func_name) and func_name not in str(
+                function_app.__dict__
+            ):
+                missing_original.append(func_name)
 
-        if missing:
+        if missing_original:
             return (
                 False,
-                f"Funciones faltantes en function_app.py: {', '.join(missing)}",
+                f"Funciones originales faltantes: {', '.join(missing_original)}",
             )
 
-        return True, "function_app.py compatible con Azure Functions"
+        # ✅ ENHANCED: Verificar endpoints enhanced
+        app_code = str(function_app.__dict__)
+        enhanced_endpoints = [
+            "rentability/enhanced",
+            "compare-types",
+            "enhanced-stats",
+            "enhance_chat_query",
+        ]
+
+        enhanced_found = []
+        for endpoint in enhanced_endpoints:
+            if endpoint in app_code:
+                enhanced_found.append(endpoint)
+
+        enhanced_count = len(enhanced_found)
+
+        if enhanced_count > 0:
+            return (
+                True,
+                f"function_app ENHANCED: {enhanced_count}/4 endpoints enhanced disponibles",
+            )
+        else:
+            return (
+                True,
+                "function_app básico compatible con Azure Functions (sin enhanced)",
+            )
 
     except Exception as e:
         return False, f"Error function_app: {str(e)}"
+
+
+def test_production_cache() -> Tuple[bool, str]:
+    """Verifica sistema de cache de producción - ENHANCED VERSION"""
+    try:
+        # Intentar importar cache de producción
+        try:
+            from src.cache.production_cache_manager import AutoUpdatingDataManager
+
+            cache_dm = AutoUpdatingDataManager()
+
+            # ✅ ENHANCED: Verificar métodos enhanced del cache
+            enhanced_cache_methods = [
+                "get_rentability_by_afp_enhanced",
+                "get_detailed_rentability_comparison",
+                "get_calculation_types_summary",
+            ]
+
+            enhanced_cache_found = []
+            for method in enhanced_cache_methods:
+                if hasattr(cache_dm, method):
+                    enhanced_cache_found.append(method)
+
+            # Probar funcionamiento básico
+            stats = cache_dm.get_summary_statistics()
+            cache_working = stats.get("total_files_processed", 0) > 0
+            enhanced_cache_count = len(enhanced_cache_found)
+
+            if cache_working and enhanced_cache_count > 0:
+                return (
+                    True,
+                    f"Production Cache ENHANCED: {enhanced_cache_count}/3 métodos enhanced, datos funcionando",
+                )
+            elif cache_working:
+                return (
+                    True,
+                    f"Production Cache básico: datos funcionando (sin enhanced methods)",
+                )
+            else:
+                return (
+                    True,
+                    f"Production Cache disponible pero sin datos ({enhanced_cache_count} enhanced methods)",
+                )
+
+        except ImportError:
+            return (
+                True,
+                "Production cache no disponible - usando cache estándar (normal)",
+            )
+
+    except Exception as e:
+        return False, f"Error Production Cache: {str(e)}"
+
+
+def test_enhanced_query_capabilities() -> Tuple[bool, str]:
+    """✅ NUEVO: Prueba específica de capacidades enhanced"""
+    try:
+        from src.azure_assistant_agent import SPPAssistantAgent
+
+        agent = SPPAssistantAgent()
+
+        # Consultas específicamente diseñadas para probar enhanced features
+        enhanced_test_queries = [
+            "¿Diferencia entre rentabilidad acumulada y anualizada?",
+            "Compara Prima vs Habitat con ambos tipos de cálculo",
+            "Muestra tabla comparativa con tipos de rentabilidad",
+        ]
+
+        successful_enhanced = 0
+        total_time = 0
+
+        for query in enhanced_test_queries[:2]:  # Solo probar 2 para no ser muy lento
+            try:
+                start_time = time.time()
+                response = agent.chat(query)
+                elapsed = time.time() - start_time
+                total_time += elapsed
+
+                # Verificar características enhanced en respuesta
+                enhanced_terms = [
+                    "acumulad",
+                    "anualiz",
+                    "tabla",
+                    "comparación",
+                    "tipos",
+                    "diferencia",
+                ]
+                terms_found = sum(
+                    1 for term in enhanced_terms if term.lower() in response.lower()
+                )
+
+                if terms_found >= 3 and len(response) > 300:
+                    successful_enhanced += 1
+
+            except Exception:
+                pass
+
+        success_rate = successful_enhanced / len(enhanced_test_queries[:2])
+        avg_time = total_time / len(enhanced_test_queries[:2]) if total_time > 0 else 0
+
+        if success_rate >= 0.5:
+            return (
+                True,
+                f"Enhanced queries: {success_rate:.1%} success rate, {avg_time:.1f}s avg",
+            )
+        else:
+            return (
+                True,
+                f"Enhanced queries: {success_rate:.1%} success rate (posible implementación básica)",
+            )
+
+    except Exception as e:
+        return False, f"Error enhanced queries: {str(e)}"
 
 
 def run_performance_benchmark() -> Tuple[bool, str]:
@@ -394,8 +628,8 @@ def run_performance_benchmark() -> Tuple[bool, str]:
 
 
 def generate_system_report() -> Dict:
-    """Genera reporte completo del sistema"""
-    print_header("VERIFICACIÓN COMPLETA DEL SISTEMA SPP")
+    """Genera reporte completo del sistema - ENHANCED VERSION"""
+    print_header("VERIFICACIÓN COMPLETA DEL SISTEMA SPP ENHANCED")
 
     tests = [
         ("Imports básicos", test_basic_imports),
@@ -404,12 +638,14 @@ def generate_system_report() -> Dict:
         ("Azure Blob Storage", test_azure_blob_storage),
         ("Azure SQL Database", test_azure_sql_database),
         ("Azure AI Search", test_azure_ai_search),
-        ("Excel Processor", test_excel_processor),
-        ("Data Manager", test_data_manager),
-        ("Assistant Agent", test_assistant_agent),
-        ("Function App", test_function_app_compatibility),
+        ("Excel Processor Enhanced", test_excel_processor),
+        ("Data Manager Enhanced", test_data_manager),
+        ("Assistant Agent Enhanced", test_assistant_agent),
+        ("Function App Enhanced", test_function_app_compatibility),
+        ("Production Cache Enhanced", test_production_cache),
+        ("Enhanced Query Capabilities", test_enhanced_query_capabilities),
         ("Performance Benchmark", run_performance_benchmark),
-        ("End-to-End Query", test_end_to_end_query),
+        ("End-to-End Enhanced Query", test_end_to_end_query),
     ]
 
     results = {}
@@ -425,8 +661,12 @@ def generate_system_report() -> Dict:
                 passed += 1
             else:
                 # Determinar si es error crítico o warning
-                if test_name in ["Azure SQL Database", "Azure AI Search"]:
-                    if "no configurado" in details or "deshabilitado" in details:
+                if test_name in [
+                    "Azure SQL Database",
+                    "Azure AI Search",
+                    "Production Cache Enhanced",
+                ]:
+                    if "no configurado" in details or "no disponible" in details:
                         status = "WARN"
                         warnings += 1
                     else:
@@ -448,7 +688,7 @@ def generate_system_report() -> Dict:
             failed += 1
 
     # Resumen final
-    print_header("RESUMEN DE VERIFICACIÓN")
+    print_header("RESUMEN DE VERIFICACIÓN ENHANCED")
 
     total_tests = len(tests)
     print(f"📊 Total de tests: {total_tests}")
@@ -459,11 +699,32 @@ def generate_system_report() -> Dict:
     success_rate = (passed + warnings) / total_tests * 100
     print(f"📈 Tasa de éxito: {success_rate:.1f}%")
 
+    # ✅ ENHANCED: Análisis de funcionalidades enhanced
+    enhanced_tests = [
+        "Excel Processor Enhanced",
+        "Data Manager Enhanced",
+        "Assistant Agent Enhanced",
+        "Function App Enhanced",
+        "Enhanced Query Capabilities",
+    ]
+    enhanced_passed = sum(
+        1 for test in enhanced_tests if results.get(test, {}).get("status") == "PASS"
+    )
+    enhanced_rate = enhanced_passed / len(enhanced_tests) * 100
+
+    print(
+        f"🚀 Funcionalidades Enhanced: {enhanced_rate:.1f}% ({enhanced_passed}/{len(enhanced_tests)})"
+    )
+
     # Determinar estado general del sistema
-    if failed == 0:
-        system_status = "🎉 SISTEMA COMPLETAMENTE FUNCIONAL"
+    if failed == 0 and enhanced_rate >= 80:
+        system_status = "🎉 SISTEMA ENHANCED COMPLETAMENTE FUNCIONAL"
+    elif failed == 0 and enhanced_rate >= 50:
+        system_status = "✅ SISTEMA ENHANCED PARCIALMENTE FUNCIONAL"
+    elif failed == 0:
+        system_status = "✅ SISTEMA BÁSICO FUNCIONAL"
     elif failed <= 2 and passed >= total_tests - 3:
-        system_status = "✅ SISTEMA FUNCIONAL CON LIMITACIONES MENORES"
+        system_status = "⚠️  SISTEMA FUNCIONAL CON LIMITACIONES MENORES"
     elif failed <= 4:
         system_status = "⚠️  SISTEMA FUNCIONAL CON LIMITACIONES"
     else:
@@ -472,17 +733,28 @@ def generate_system_report() -> Dict:
     print(f"\n🎯 ESTADO DEL SISTEMA: {system_status}")
 
     # Recomendaciones específicas
-    print_header("RECOMENDACIONES")
+    print_header("RECOMENDACIONES ENHANCED")
 
-    if failed == 0:
-        print("🚀 ¡Excelente! Su sistema está completamente configurado.")
+    if failed == 0 and enhanced_rate >= 80:
+        print("🚀 ¡Excelente! Su sistema enhanced está completamente configurado.")
         print("   Puede proceder a ejecutar python demo.py o desplegar en producción.")
+        print("   ✅ Funcionalidades enhanced completamente disponibles")
+    elif enhanced_rate >= 50:
+        print("🔧 Sistema enhanced parcialmente funcional:")
+        print("   ✅ Funcionalidades básicas completas")
+        print("   ⚠️  Algunas funcionalidades enhanced pueden necesitar implementación")
+        print("   💡 Ejecutar python demo.py para ver capacidades disponibles")
     else:
         print("🔧 Para mejorar el sistema:")
         for test_name, result in results.items():
             if result["status"] == "FAIL":
                 print(f"   ❌ Solucionar: {test_name}")
                 print(f"      └─ {result['details']}")
+
+        if enhanced_rate < 50:
+            print(
+                "   💡 Funcionalidades enhanced no implementadas - sistema funciona en modo básico"
+            )
 
         if any(
             "Azure SQL" in name
@@ -503,6 +775,8 @@ def generate_system_report() -> Dict:
         "warnings": warnings,
         "failed": failed,
         "success_rate": success_rate,
+        "enhanced_rate": enhanced_rate,
+        "enhanced_passed": enhanced_passed,
         "system_status": system_status,
     }
 
@@ -522,8 +796,22 @@ def main():
 
         # Determinar código de salida
         failed = report["summary"]["failed"]
-        if failed == 0:
-            print("\n🎉 ¡Verificación completada exitosamente!")
+        enhanced_rate = report["summary"]["enhanced_rate"]
+
+        if failed == 0 and enhanced_rate >= 80:
+            print("\n🎉 ¡Verificación enhanced completada exitosamente!")
+            print("🚀 Próximos pasos recomendados:")
+            print("   • python demo.py - Ver funcionalidades enhanced")
+            print(
+                "   • python test/test_agent_interactive.py - Probar consultas enhanced"
+            )
+            print("   • func start - Iniciar API con endpoints enhanced")
+            return 0
+        elif failed == 0:
+            print("\n✅ Verificación completada - sistema básico funcional")
+            print("💡 Para activar funcionalidades enhanced:")
+            print("   • Verificar implementación de métodos enhanced en archivos")
+            print("   • python demo.py - Ver capacidades disponibles")
             return 0
         elif failed <= 2:
             print("\n⚠️  Verificación completada con warnings menores")

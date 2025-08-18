@@ -395,6 +395,145 @@ class AutoUpdatingDataManager:
         """Fuerza actualización completa (para casos especiales)"""
         self.cache_manager.force_refresh()
 
+    # ==============================================
+    # NUEVOS METODOSSS
+    def get_rentability_by_afp_enhanced(
+        self,
+        afp_name: str,
+        fund_type: int = 0,
+        period: str = None,
+        calculation_type: str = "both",
+    ) -> Dict:
+        """Obtiene rentabilidad con auto-refresh automático - ENHANCED VERSION"""
+        # Auto-refresh check
+        self._auto_refresh_check()
+
+        # Obtener período más reciente si no se especifica
+        if not period:
+            available_periods = self.get_available_periods(fund_type)
+            if not available_periods:
+                return {
+                    "error": f"No hay datos disponibles para el fondo tipo {fund_type}"
+                }
+            period = sorted(available_periods, reverse=True)[0]
+
+        # Buscar en cache
+        key = f"fund_{fund_type}_period_{period}"
+        cached_data = self.cache_manager.get_data(key)
+
+        if not cached_data:
+            return {
+                "error": f"No hay datos para fondo tipo {fund_type} en período {period}"
+            }
+
+        # Buscar AFP específica
+        afp_name_lower = afp_name.lower()
+        for afp_data in cached_data["rentability_data"].get("afp_data", []):
+            if afp_data["afp_name"].lower() == afp_name_lower:
+
+                # ✅ ENHANCED: Filtrar por tipo de cálculo
+                all_data = afp_data["rentability_data"]
+                filtered_data = all_data.copy()
+
+                if calculation_type == "accumulated":
+                    filtered_data = {
+                        k: v
+                        for k, v in all_data.items()
+                        if "accumulated" in k
+                        or ("accumulated" not in k and "annualized" not in k)
+                    }
+                elif calculation_type == "annualized":
+                    filtered_data = {
+                        k: v for k, v in all_data.items() if "annualized" in k
+                    }
+
+                return {
+                    "afp_name": afp_data["afp_name"],
+                    "fund_type": fund_type,
+                    "period": period,
+                    "calculation_type": calculation_type,
+                    "rentability_data": filtered_data,
+                    "data_sources": afp_data.get("data_sources", ["cache"]),
+                    "has_accumulated": any("accumulated" in k for k in all_data.keys()),
+                    "has_annualized": any("annualized" in k for k in all_data.keys()),
+                    "data_source": f"Hybrid Cache System - {period} (Enhanced)",
+                    "cached_at": cached_data.get("cached_at"),
+                }
+
+        return {"error": f"AFP {afp_name} no encontrada en los datos"}
+
+    def get_detailed_rentability_comparison(
+        self, afp_name: str, fund_type: int = 0, period: str = None
+    ) -> Dict:
+        """Comparación detallada con cache híbrido"""
+        # Auto-refresh check
+        self._auto_refresh_check()
+
+        # Obtener datos acumulados
+        acc_data = self.get_rentability_by_afp_enhanced(
+            afp_name, fund_type, period, "accumulated"
+        )
+
+        # Obtener datos anualizados
+        ann_data = self.get_rentability_by_afp_enhanced(
+            afp_name, fund_type, period, "annualized"
+        )
+
+        comparison = {
+            "afp_name": afp_name,
+            "fund_type": fund_type,
+            "period": period,
+            "accumulated_data": acc_data if "error" not in acc_data else None,
+            "annualized_data": ann_data if "error" not in ann_data else None,
+            "differences": {},
+            "cache_source": "hybrid_cache_enhanced",
+        }
+
+        # Calcular diferencias si ambos están disponibles
+        if comparison["accumulated_data"] and comparison["annualized_data"]:
+            acc_rent = comparison["accumulated_data"]["rentability_data"]
+            ann_rent = comparison["annualized_data"]["rentability_data"]
+
+            for acc_key, acc_value in acc_rent.items():
+                if "accumulated" in acc_key:
+                    ann_key = acc_key.replace("accumulated", "annualized")
+                    if ann_key in ann_rent:
+                        difference = acc_value - ann_rent[ann_key]
+                        comparison["differences"][
+                            acc_key.replace("_accumulated", "")
+                        ] = {
+                            "accumulated": acc_value,
+                            "annualized": ann_rent[ann_key],
+                            "difference": difference,
+                        }
+
+        return comparison
+
+    def get_calculation_types_summary(self) -> Dict:
+        """Obtiene resumen con información de cache"""
+        cache_stats = self.cache_manager.get_cache_stats()
+
+        enhanced_count = 0
+        legacy_count = 0
+
+        for key, data in self.cache_manager.ram_cache.items():
+            rentability_info = data.get("rentability_data", {}).get(
+                "rentability_type_info", {}
+            )
+            if rentability_info and rentability_info.get("has_accumulated"):
+                enhanced_count += 1
+            else:
+                legacy_count += 1
+
+        return {
+            "total_files_processed": cache_stats["ram_cache_entries"],
+            "enhanced_files": enhanced_count,
+            "legacy_files": legacy_count,
+            "cache_stats": cache_stats,
+            "data_source": "Hybrid Cache System Enhanced",
+            "auto_refresh_enabled": True,
+        }
+
 
 # Función para integrar con el sistema existente
 def get_production_data_manager() -> AutoUpdatingDataManager:

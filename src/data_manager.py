@@ -1,9 +1,9 @@
-#!/usr/bin/env python3
 """
 Gestor de datos de rentabilidad de fondos SPP
 Carga y gestiona todos los archivos Excel de rentabilidad desde Azure Blob Storage
 Integra Azure AI Search y Azure SQL para consultas avanzadas
 """
+
 import pandas as pd
 import json
 import os
@@ -557,6 +557,332 @@ class RentabilityDataManager:
             results["analysis_sources"].append("azure_ai_search")
 
         return results
+
+    # ✅ AGREGAR ESTOS MÉTODOS AL data_manager.py EXISTENTE
+    # NO reemplazar archivo completo, solo agregar estos métodos nuevos
+
+    def get_rentability_by_afp_enhanced(
+        self,
+        afp_name: str,
+        fund_type: int = 0,
+        period: str = None,
+        calculation_type: str = "both",  # ✅ NUEVO: "accumulated", "annualized", "both"
+    ) -> Dict:
+        """
+        ✅ ENHANCED: Obtiene datos de rentabilidad diferenciando ACUMULADA vs ANUALIZADA
+        Mantiene backward compatibility total
+        """
+        afp_name = afp_name.lower()
+
+        # ✅ Intentar obtener desde Azure SQL primero (con nuevos tipos)
+        sql_result = self._get_rentability_from_sql_enhanced(
+            afp_name, fund_type, period, calculation_type
+        )
+        if sql_result and "error" not in sql_result:
+            return sql_result
+
+        # Fallback al cache local
+        if not period:
+            available_periods = self.get_available_periods(fund_type)
+            if not available_periods:
+                return {
+                    "error": f"No hay datos disponibles para el fondo tipo {fund_type}"
+                }
+            period = sorted(available_periods, reverse=True)[0]
+
+        key = f"fund_{fund_type}_period_{period}"
+
+        if key not in self.data_cache:
+            return {
+                "error": f"No hay datos para fondo tipo {fund_type} en período {period}"
+            }
+
+        data = self.data_cache[key]["rentability_data"]
+
+        # Buscar datos de la AFP específica
+        for afp_data in data.get("afp_data", []):
+            if afp_data["afp_name"].lower() == afp_name:
+
+                # ✅ ENHANCED: Filtrar por tipo de cálculo si se especifica
+                filtered_data = afp_data["rentability_data"].copy()
+
+                if calculation_type == "accumulated":
+                    # Solo datos acumulados
+                    filtered_data = {
+                        k: v
+                        for k, v in filtered_data.items()
+                        if "accumulated" in k
+                        or ("accumulated" not in k and "annualized" not in k)
+                    }
+                elif calculation_type == "annualized":
+                    # Solo datos anualizados
+                    filtered_data = {
+                        k: v for k, v in filtered_data.items() if "annualized" in k
+                    }
+                # Si es "both", devolver todo
+
+                return {
+                    "afp_name": afp_data["afp_name"],
+                    "fund_type": fund_type,
+                    "period": period,
+                    "calculation_type": calculation_type,
+                    "rentability_data": filtered_data,
+                    "data_sources": afp_data.get("data_sources", ["legacy"]),
+                    "has_accumulated": any(
+                        "accumulated" in k for k in filtered_data.keys()
+                    ),
+                    "has_annualized": any(
+                        "annualized" in k for k in filtered_data.keys()
+                    ),
+                    "periods_available": data.get("periods_available", []),
+                    "data_source": f"Archivo oficial SPP - {period} (Enhanced)",
+                }
+
+        return {"error": f"AFP {afp_name} no encontrada en los datos"}
+
+    def compare_afp_rentability_enhanced(
+        self,
+        afps: List[str],
+        fund_type: int = 0,
+        period: str = None,
+        calculation_type: str = "both",  # ✅ NUEVO: "accumulated", "annualized", "both"
+    ) -> Dict:
+        """
+        ✅ ENHANCED: Compara rentabilidad entre múltiples AFPs con tipos diferenciados
+        """
+        if not period:
+            available_periods = self.get_available_periods(fund_type)
+            if not available_periods:
+                return {
+                    "error": f"No hay datos disponibles para el fondo tipo {fund_type}"
+                }
+            period = sorted(available_periods, reverse=True)[0]
+
+        comparison = {}
+        rankings = {}
+
+        for afp in afps:
+            afp_data = self.get_rentability_by_afp_enhanced(
+                afp, fund_type, period, calculation_type
+            )
+            if "error" not in afp_data:
+                comparison[afp] = afp_data["rentability_data"]
+
+        # ✅ ENHANCED: Calcular rankings para diferentes tipos y períodos
+        if comparison:
+            sample_data = next(iter(comparison.values()))
+            for period_key in sample_data.keys():
+                if "nominal" in period_key or "real" in period_key:
+                    period_ranking = []
+                    for afp, data in comparison.items():
+                        if period_key in data:
+                            period_ranking.append((afp, data[period_key]))
+                    period_ranking.sort(key=lambda x: x[1], reverse=True)
+                    rankings[period_key] = period_ranking
+
+        return {
+            "comparison": comparison,
+            "fund_type": fund_type,
+            "period": period,
+            "calculation_type": calculation_type,
+            "rankings": rankings,
+            "analysis": f"Comparación de rentabilidad {calculation_type} para fondo tipo {fund_type}",
+            "enhanced_features": {
+                "accumulated_data": calculation_type in ["accumulated", "both"],
+                "annualized_data": calculation_type in ["annualized", "both"],
+            },
+        }
+
+    def _get_rentability_from_sql_enhanced(
+        self,
+        afp_name: str,
+        fund_type: int,
+        period: str = None,
+        calculation_type: str = "both",
+    ) -> Dict:
+        """
+        ✅ ENHANCED: Obtiene datos de rentabilidad desde Azure SQL Database con tipos
+        """
+        if not self.sql_connection_string:
+            return {"error": "Azure SQL no configurado"}
+
+        try:
+            import pyodbc
+
+            conn = pyodbc.connect(self.sql_connection_string)
+            cursor = conn.cursor()
+
+            # ✅ ENHANCED: Query con filtro de calculation_type
+            query = """
+                SELECT period_key, rentability_value, rentability_type, calculation_type
+                FROM rentability_data
+                WHERE LOWER(afp_name) = ? AND fund_type = ?
+            """
+            params = [afp_name.lower(), fund_type]
+
+            if period:
+                query += " AND period = ?"
+                params.append(period)
+            else:
+                query += " AND period = (SELECT MAX(period) FROM rentability_data WHERE LOWER(afp_name) = ? AND fund_type = ?)"
+                params.extend([afp_name.lower(), fund_type])
+
+            # ✅ Filtrar por tipo de cálculo
+            if calculation_type == "accumulated":
+                query += " AND calculation_type = 'accumulated'"
+            elif calculation_type == "annualized":
+                query += " AND calculation_type = 'annualized'"
+            # Si es "both", no filtrar
+
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+
+            if not rows:
+                conn.close()
+                return {
+                    "error": f"No hay datos en SQL para {afp_name} fondo tipo {fund_type}"
+                }
+
+            # ✅ ENHANCED: Procesar resultados con tipos
+            rentability_data = {}
+            actual_period = None
+            data_sources = set()
+
+            for row in rows:
+                period_key, value, rent_type, calc_type = row
+                rentability_data[period_key] = float(value)
+                data_sources.add(calc_type)
+
+                # Obtener el período actual
+                if not actual_period:
+                    period_query = "SELECT DISTINCT period FROM rentability_data WHERE LOWER(afp_name) = ? AND fund_type = ? AND period_key = ?"
+                    cursor.execute(
+                        period_query, [afp_name.lower(), fund_type, period_key]
+                    )
+                    period_result = cursor.fetchone()
+                    if period_result:
+                        actual_period = period_result[0]
+
+            conn.close()
+
+            return {
+                "afp_name": afp_name.title(),
+                "fund_type": fund_type,
+                "period": actual_period or period,
+                "calculation_type": calculation_type,
+                "rentability_data": rentability_data,
+                "data_sources": list(data_sources),
+                "has_accumulated": "accumulated" in data_sources,
+                "has_annualized": "annualized" in data_sources,
+                "data_source": "Azure SQL Database (Enhanced)",
+            }
+
+        except Exception as e:
+            logging.error(f"Error consultando Azure SQL ENHANCED: {str(e)}")
+            return {"error": f"Error en consulta SQL: {str(e)}"}
+
+    def get_calculation_types_summary(self) -> Dict:
+        """
+        ✅ NUEVO: Obtiene resumen de tipos de cálculo disponibles
+        """
+        summary = {
+            "total_files": len(self.data_cache),
+            "enhanced_files": 0,
+            "legacy_files": 0,
+            "accumulated_available": [],
+            "annualized_available": [],
+            "both_available": [],
+        }
+
+        for key, data in self.data_cache.items():
+            rentability_info = data["rentability_data"].get("rentability_type_info", {})
+
+            if rentability_info:
+                summary["enhanced_files"] += 1
+
+                if rentability_info.get("has_accumulated") and rentability_info.get(
+                    "has_annualized"
+                ):
+                    summary["both_available"].append(key)
+                elif rentability_info.get("has_accumulated"):
+                    summary["accumulated_available"].append(key)
+                elif rentability_info.get("has_annualized"):
+                    summary["annualized_available"].append(key)
+            else:
+                summary["legacy_files"] += 1
+
+        return summary
+
+    def get_detailed_rentability_comparison(
+        self, afp_name: str, fund_type: int = 0, period: str = None
+    ) -> Dict:
+        """
+        ✅ NUEVO: Comparación detallada mostrando diferencias entre acumulada y anualizada
+        """
+        # Obtener datos acumulados
+        acc_data = self.get_rentability_by_afp_enhanced(
+            afp_name, fund_type, period, "accumulated"
+        )
+
+        # Obtener datos anualizados
+        ann_data = self.get_rentability_by_afp_enhanced(
+            afp_name, fund_type, period, "annualized"
+        )
+
+        comparison = {
+            "afp_name": afp_name,
+            "fund_type": fund_type,
+            "period": period,
+            "accumulated_data": acc_data if "error" not in acc_data else None,
+            "annualized_data": ann_data if "error" not in ann_data else None,
+            "differences": {},
+            "analysis": [],
+        }
+
+        # Calcular diferencias si ambos están disponibles
+        if comparison["accumulated_data"] and comparison["annualized_data"]:
+            acc_rent = comparison["accumulated_data"]["rentability_data"]
+            ann_rent = comparison["annualized_data"]["rentability_data"]
+
+            # Encontrar claves comparables (mismo período, mismo tipo nominal/real)
+            for acc_key, acc_value in acc_rent.items():
+                if "accumulated" in acc_key:
+                    # Buscar clave correspondiente en anualizada
+                    ann_key = acc_key.replace("accumulated", "annualized")
+                    if ann_key in ann_rent:
+                        difference = acc_value - ann_rent[ann_key]
+                        comparison["differences"][
+                            acc_key.replace("_accumulated", "")
+                        ] = {
+                            "accumulated": acc_value,
+                            "annualized": ann_rent[ann_key],
+                            "difference": difference,
+                            "percentage_diff": (
+                                (difference / ann_rent[ann_key] * 100)
+                                if ann_rent[ann_key] != 0
+                                else 0
+                            ),
+                        }
+
+            # Generar análisis automático
+            if comparison["differences"]:
+                avg_diff = sum(
+                    d["difference"] for d in comparison["differences"].values()
+                ) / len(comparison["differences"])
+                comparison["analysis"].append(
+                    f"Diferencia promedio entre acumulada y anualizada: {avg_diff:.2f}%"
+                )
+
+                if avg_diff > 0:
+                    comparison["analysis"].append(
+                        "La rentabilidad acumulada es generalmente mayor que la anualizada"
+                    )
+                else:
+                    comparison["analysis"].append(
+                        "La rentabilidad anualizada es generalmente mayor que la acumulada"
+                    )
+
+        return comparison
 
 
 # Instancia global del gestor de datos

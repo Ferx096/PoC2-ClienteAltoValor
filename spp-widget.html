@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agente SPP - Widget de Rentabilidad</title>
+    <title>Agente Consejero de Valor SPP - Widget</title>
     <style>
         * {
             box-sizing: border-box;
@@ -15,12 +15,14 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #f5f5f5;
-            padding: 20px;
+            padding: 15px;
         }
 
         #spp-chat-widget {
-            max-width: 450px;
-            height: 650px;
+            max-width: 800px;
+            width: 100%;
+            height: 85vh;
+            min-height: 650px;
             background: white;
             border-radius: 15px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
@@ -33,34 +35,36 @@
         .widget-header {
             background: linear-gradient(135deg, #007cba, #0056b3);
             color: white;
-            padding: 20px;
+            padding: 16px 20px;
             text-align: center;
+            flex-shrink: 0;
         }
 
         .widget-header h3 {
             margin: 0;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
         }
 
         .widget-header p {
-            margin: 5px 0 0 0;
-            font-size: 12px;
+            margin: 4px 0 0 0;
+            font-size: 11px;
             opacity: 0.9;
         }
 
         #chat-messages {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
+            padding: 16px;
             background: #fafafa;
+            scroll-behavior: smooth;
         }
 
         .message {
-            margin-bottom: 15px;
-            padding: 12px 15px;
+            margin-bottom: 12px;
+            padding: 12px;
             border-radius: 10px;
-            max-width: 85%;
+            max-width: 95%;
             word-wrap: break-word;
         }
 
@@ -75,29 +79,140 @@
             background: white;
             border: 1px solid #e0e0e0;
             margin-right: auto;
+            line-height: 1.4;
         }
 
         .message-label {
             font-weight: bold;
-            font-size: 12px;
-            margin-bottom: 5px;
+            font-size: 11px;
+            margin-bottom: 6px;
             opacity: 0.8;
         }
 
+        .message-content {
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .message-content h1,
+        .message-content h2,
+        .message-content h3 {
+            color: #007cba;
+            margin: 12px 0 8px 0;
+            font-weight: 600;
+        }
+
+        .message-content h1 {
+            font-size: 16px;
+        }
+
+        .message-content h2 {
+            font-size: 15px;
+        }
+
+        .message-content h3 {
+            font-size: 13px;
+        }
+
+        .message-content strong,
+        .message-content b {
+            color: #0056b3;
+            font-weight: 600;
+        }
+
+        .message-content ul,
+        .message-content ol {
+            margin: 8px 0;
+            padding-left: 18px;
+        }
+
+        .message-content li {
+            margin: 3px 0;
+        }
+
+        .message-content p {
+            margin: 8px 0;
+        }
+
+        .message-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            font-size: 12px;
+        }
+
+        .message-content thead {
+            background: linear-gradient(135deg, #007cba, #0056b3);
+            color: white;
+        }
+
+        .message-content th {
+            padding: 10px 6px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 11px;
+        }
+
+        .message-content td {
+            padding: 8px 6px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 12px;
+        }
+
+        .message-content tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .percentage {
+            font-weight: 600;
+            color: #28a745;
+            background: #e8f5e8;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
+        .percentage.negative {
+            color: #dc3545;
+            background: #ffeaea;
+        }
+
+        .highlight {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 8px;
+            margin: 8px 0;
+            border-radius: 4px;
+        }
+
+        .info-box {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 8px 0;
+        }
+
         .input-container {
-            padding: 20px;
+            padding: 16px;
             background: white;
             border-top: 1px solid #e0e0e0;
             display: flex;
             gap: 10px;
+            flex-shrink: 0;
         }
 
         #chat-input {
             flex: 1;
-            padding: 12px 15px;
+            padding: 12px 14px;
             border: 1px solid #ddd;
             border-radius: 25px;
-            font-size: 14px;
+            font-size: 13px;
             outline: none;
             transition: border-color 0.3s;
         }
@@ -107,13 +222,13 @@
         }
 
         #send-btn {
-            padding: 12px 20px;
+            padding: 10px 18px;
             background: #007cba;
             color: white;
             border: none;
             border-radius: 25px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             transition: background 0.3s;
         }
@@ -130,45 +245,121 @@
         .loading {
             display: none;
             text-align: center;
-            padding: 10px;
+            padding: 8px;
             color: #666;
             font-style: italic;
-        }
-
-        .examples {
-            padding: 15px 20px;
-            background: #f8f9fa;
-            border-top: 1px solid #e0e0e0;
             font-size: 12px;
         }
 
+        .examples {
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border-top: 1px solid #e0e0e0;
+            font-size: 11px;
+            flex-shrink: 0;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
         .examples h4 {
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             color: #333;
+            font-size: 12px;
         }
 
         .example-query {
             background: #e3f2fd;
             padding: 5px 8px;
-            margin: 3px 0;
+            margin: 2px 0;
             border-radius: 5px;
             cursor: pointer;
             transition: background 0.3s;
+            font-size: 11px;
+            line-height: 1.3;
         }
 
         .example-query:hover {
             background: #bbdefb;
         }
 
-        @media (max-width: 500px) {
+        /* Estilos específicos para tablas grandes */
+        .table-container {
+            overflow-x: auto;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Responsive*/
+        @media (max-width: 900px) {
+            #spp-chat-widget {
+                max-width: 95%;
+                margin: 0 5px;
+            }
+        }
+
+        @media (max-width: 600px) {
             body {
-                padding: 10px;
+                padding: 5px;
             }
 
             #spp-chat-widget {
-                height: 100vh;
-                max-height: 600px;
+                height: 95vh;
+                max-width: 100%;
+                margin: 0;
+                border-radius: 10px;
             }
+
+            .message-content table {
+                font-size: 10px;
+            }
+
+            .message-content th,
+            .message-content td {
+                padding: 4px 3px;
+            }
+
+            .message-content th {
+                font-size: 10px;
+            }
+
+            .message-content td {
+                font-size: 10px;
+            }
+
+            .percentage {
+                font-size: 10px;
+                padding: 1px 3px;
+            }
+
+            .examples {
+                max-height: 100px;
+                padding: 8px 12px;
+            }
+
+            .example-query {
+                font-size: 10px;
+                padding: 4px 6px;
+            }
+        }
+
+        /* Mejora para scrollbar en chat */
+        #chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        #chat-messages::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        #chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
         }
     </style>
 </head>
@@ -176,33 +367,47 @@
 <body>
     <div id="spp-chat-widget">
         <div class="widget-header">
-            <h3>🤖 Agente SPP</h3>
+            <h3>🤖 AGENTE CONSEJERO DE ALTO VALOR SPP</h3>
             <p>Consulta rentabilidad de fondos de pensiones</p>
         </div>
 
         <div id="chat-messages">
             <div class="message agent-message">
-                <div class="message-label">Agente SPP</div>
-                ¡Hola! Soy tu asistente especializado en rentabilidad de fondos del SPP. Puedo ayudarte con información
-                sobre AFPs, tipos de fondos y análisis de rentabilidad. ¿En qué puedo ayudarte?
+                <div class="message-label">Agente Consejero SPP</div>
+                <div class="message-content">
+                    ¡Hola! Soy tu <strong>Agente Consejero de Alto Valor SPP</strong>, especializado en análisis de
+                    rentabilidad de fondos de pensiones.
+                    <br><br>
+                    Puedo ayudarte con:
+                    <ul>
+                        <li>📊 Análisis de rentabilidad por AFP</li>
+                        <li>⚖️ Comparaciones entre fondos</li>
+                        <li>🎯 Recomendaciones personalizadas</li>
+                    </ul>
+                    ¿En qué puedo ayudarte hoy?
+                </div>
             </div>
         </div>
 
         <div class="loading" id="loading">
-            🤖 El agente está pensando...
+            🤖 El agente está analizando...
         </div>
 
         <div class="examples">
             <h4>💡 Ejemplos de consultas:</h4>
             <div class="example-query"
-                onclick="setQuery('¿Cuál es la rentabilidad de Habitat en el fondo conservador?')">
-                ¿Rentabilidad de Habitat en fondo conservador?
+                onclick="setQuery('¿Cuál es la rentabilidad actual de Habitat en el fondo conservador?')">
+                🏦 Rentabilidad de Habitat en fondo conservador
             </div>
-            <div class="example-query" onclick="setQuery('Compara Integra vs Prima en fondos de crecimiento')">
-                Compara Integra vs Prima en fondos de crecimiento
+            <div class="example-query" onclick="setQuery('Compara Prima vs Integra en todos los fondos')">
+                ⚖️ Compara Prima vs Integra en todos los fondos
             </div>
-            <div class="example-query" onclick="setQuery('¿Qué tipo de fondo recomiendas para 30 años?')">
-                ¿Qué fondo recomiendas para 30 años?
+            <div class="example-query"
+                onclick="setQuery('¿Qué tipo de fondo recomiendas para una persona de 30 años?')">
+                🎯 Recomendación para persona de 30 años
+            </div>
+            <div class="example-query" onclick="setQuery('Muestra la rentabilidad de todas las AFPs en una tabla')">
+                📊 Tabla comparativa de todas las AFPs
             </div>
         </div>
 
@@ -213,7 +418,6 @@
     </div>
 
     <script>
-        // Configuración - Cambiar por tu URL de producción
         const API_URL = 'https://sbsfuncion-e4crawc6f5hegkhj.eastus-01.azurewebsites.net/api/chat';
 
         const chatMessages = document.getElementById('chat-messages');
@@ -232,23 +436,98 @@
 
             const labelDiv = document.createElement('div');
             labelDiv.className = 'message-label';
-            labelDiv.textContent = isUser ? 'Tú' : 'Agente SPP';
+            labelDiv.textContent = isUser ? 'Tú' : 'Agente Consejero SPP';
 
             const contentDiv = document.createElement('div');
-            contentDiv.textContent = content;
+            contentDiv.className = 'message-content';
+
+            if (isUser) {
+                contentDiv.textContent = content;
+            } else {
+                contentDiv.innerHTML = formatResponse(content);
+            }
 
             messageDiv.appendChild(labelDiv);
             messageDiv.appendChild(contentDiv);
             chatMessages.appendChild(messageDiv);
 
-            // Scroll al final
             chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function formatResponse(text) {
+            let formatted = text;
+
+            // Convertir títulos marcados con **TEXTO:**
+            formatted = formatted.replace(/\*\*(.*?):\*\*/g, '<h3><strong>$1:</strong></h3>');
+
+            // Convertir negritas (**texto**)
+            formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+            // Detectar y convertir tablas en formato markdown
+            formatted = convertMarkdownTables(formatted);
+
+            // Formatear porcentajes
+            formatted = formatted.replace(/(\d+\.?\d*%)/g, '<span class="percentage">$1</span>');
+            formatted = formatted.replace(/<span class="percentage">(-\d+\.?\d*%)<\/span>/g, '<span class="percentage negative">$1</span>');
+
+            // Convertir listas con viñetas
+            formatted = formatted.replace(/^[•\-\*] (.+)$/gm, '<li>$1</li>');
+            formatted = formatted.replace(/(<li>.*?<\/li>)/gs, '<ul>$1</ul>');
+
+            // Convertir saltos de línea dobles a párrafos
+            formatted = formatted.replace(/\n\n+/g, '</p><p>');
+            formatted = '<p>' + formatted + '</p>';
+
+            // Limpiar párrafos vacíos
+            formatted = formatted.replace(/<p><\/p>/g, '');
+            formatted = formatted.replace(/<p>\s*<\/p>/g, '');
+
+            // ✅ NUEVO: Detectar y resaltar diferencias en tablas
+            formatted = formatted.replace(/(\+?\-?\d+\.?\d*%)/g, '<span class="percentage">$1</span>');
+            // ✅ NUEVO: Destacar términos enhanced
+            formatted = formatted.replace(/(acumulad[ao]|anualiz[ao])/gi, '<strong class="enhanced-term">$1</strong>');
+
+            return formatted;
+        }
+
+
+        function convertMarkdownTables(text) {
+            // Buscar tablas en formato markdown
+            const tableRegex = /\|(.+)\|[\r\n]+\|(.+)\|[\r\n]+((?:\|.+\|[\r\n]*)+)/g;
+
+            return text.replace(tableRegex, (match, headerRow, separatorRow, bodyRows) => {
+                // Procesar encabezados
+                const headers = headerRow.split('|').map(h => h.trim()).filter(h => h);
+
+                // Procesar filas del cuerpo
+                const rows = bodyRows.trim().split('\n').map(row =>
+                    row.split('|').map(cell => cell.trim()).filter(cell => cell)
+                );
+
+                // Generar HTML de tabla
+                let html = '<table><thead><tr>';
+                headers.forEach(header => {
+                    html += `<th>${header}</th>`;
+                });
+                html += '</tr></thead><tbody>';
+
+                rows.forEach(row => {
+                    html += '<tr>';
+                    row.forEach(cell => {
+                        html += `<td>${cell}</td>`;
+                    });
+                    html += '</tr>';
+                });
+
+                html += '</tbody></table>';
+                return html;
+            });
         }
 
         function showLoading(show) {
             loading.style.display = show ? 'block' : 'none';
             sendBtn.disabled = show;
-            sendBtn.textContent = show ? 'Enviando...' : 'Enviar';
+            sendBtn.textContent = show ? 'Analizando...' : 'Enviar';
         }
 
         async function sendMessage() {
@@ -259,7 +538,6 @@
                 return;
             }
 
-            // Mostrar mensaje del usuario
             addMessage(query, true);
             chatInput.value = '';
             showLoading(true);
@@ -271,7 +549,9 @@
                         'Content-Type': 'application/json',
                         'Access-Control-Allow-Origin': '*'
                     },
-                    body: JSON.stringify({ query: query })
+                    body: JSON.stringify({
+                        query: query + " (Responde con formato estructurado usando títulos con **TITULO:**, tablas en formato markdown cuando sea apropiado, y negritas para destacar datos importantes)"
+                    })
                 });
 
                 if (!response.ok) {
@@ -288,14 +568,13 @@
 
             } catch (error) {
                 console.error('Error:', error);
-                addMessage('❌ Error de conexión. Verifica que el servidor esté ejecutándose en ' + API_URL);
+                addMessage('❌ Error de conexión. Verifica que el servidor esté ejecutándose.');
             } finally {
                 showLoading(false);
                 chatInput.focus();
             }
         }
 
-        // Event listeners
         sendBtn.addEventListener('click', sendMessage);
 
         chatInput.addEventListener('keypress', function (e) {
@@ -305,14 +584,26 @@
             }
         });
 
-        // Focus inicial
         chatInput.focus();
 
-        // Mensaje de bienvenida con instrucciones
         setTimeout(() => {
-            addMessage('💡 Tip: Puedes preguntar sobre rentabilidad de AFPs específicas, comparar fondos, o pedir recomendaciones según tu edad y perfil de riesgo.');
-        }, 1000);
+            addMessage(`💡 <strong>Tip de formato:</strong> Para obtener mejores respuestas visuales, puedes preguntar:
+            <ul>
+                <li>"Muestra en tabla la rentabilidad de todas las AFPs"</li>
+                <li>"Compara los fondos con datos organizados"</li>
+                <li>"Dame un análisis detallado con porcentajes destacados"</li>
+            </ul>`);
+        }, 2000);
     </script>
+    <style>
+        .enhanced-term {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 1px 3px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+    </style>
 </body>
 
 </html>
