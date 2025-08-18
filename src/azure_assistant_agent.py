@@ -276,7 +276,43 @@ class SPPAssistantAgent:
                     },
                 },
             },
-        ]
+                
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_rentability_by_date_range",
+                    "description": "Obtiene rentabilidad de AFPs para un RANGO COMPLETO de períodos",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "afp_names": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Lista de AFPs a consultar (ej: ['Habitat', 'Integra', 'Prima', 'Profuturo'])"
+                            },
+                            "fund_types": {
+                                "type": "array", 
+                                "items": {"type": "integer"},
+                                "description": "Tipos de fondos a consultar (ej: [2, 3])"
+                            },
+                            "start_period": {
+                                "type": "string",
+                                "description": "Período inicial en formato YYYY-MM (ej: '2021-05')"
+                            },
+                            "end_period": {
+                                "type": "string", 
+                                "description": "Período final en formato YYYY-MM (ej: '2025-05')"
+                            },
+                            "rentability_type": {
+                                "type": "string",
+                                "enum": ["nominal", "real", "both"],
+                                "description": "Tipo de rentabilidad a consultar"
+                            }
+                        },
+                        "required": ["afp_names", "fund_types", "start_period", "end_period"]
+                    }
+                }
+            }
 
     def create_assistant(self) -> str:
         """Crea el asistente especializado en rentabilidad de fondos SPP con formato mejorado"""
@@ -392,6 +428,39 @@ TIPOS DE RENTABILIDAD:
 - **Nominal:** Sin ajuste por inflación
 - **Real:** Ajustada por inflación
 
+MANEJO DE RANGOS DE PERÍODOS:
+**Cuando el usuario solicite un RANGO de fechas:**
+- "de mayo 2021 a mayo 2025" 
+- "desde 2022 hasta 2024"
+- "últimos 3 años"
+- "período completo disponible"
+- **Columnas adicionales:** Si la consulta abarca más de un año, incluye las columnas o tablas necesarias con la rentabilidad por periodo completo y cada mes.
+- **Cobertura Temporal:** Cuando la pregunta indique un rango de fechas (ej. “de mayo 2021 a mayo 2025”), incluye datos del rango completo disponible, incluye todos los periodos dentro del rango.
+
+
+**USA la función get_rentability_by_date_range para:**
+1. Consultas con múltiples períodos
+2. Comparaciones temporales extensas
+3. Análisis de evolución histórica
+4. Tablas con múltiples columnas temporales
+
+Por ejemplo si pregunta: dame la rentabilidad comparada de PRIMA vs Habitat, de mayo 2021 a mayo 2025, del fondo 3: 
+**FORMATO DE RESPUESTA PARA RANGOS:**
+
+**Comparación Rentabilidad ACUMULADA:**
+| AFP | May 2025/May 2024<br>(1A) Nominal | May 2025/May 2024<br>(1A) Real | May 2025/May 2023<br>(2A) Nominal | May 2025/May 2023<br>(2A) Real | May 2025/May 2022<br>(3A) Nominal | May 2025/May 2022<br>(3A) Real | May 2025/May 2021<br>(4A) Nominal | May 2025/May 2021<br>(4A) Real | May 2025/May 2020<br>(5A) Nominal | May 2025/May 2020<br>(5A) Real |
+|-----|------------|---------|------------|---------|------------|---------|------------|---------|------------|---------|
+| **Habitat** | **0.14%** | **-1.52%** | **17.64%** | **13.41%** | **12.19%** | **0.25%** | **13.99%** | **-5.77%** | **56.51%** | **26.29%** |
+| **Prima** ⭐ | **-10.28%** | **-11.77%** | **1.78%** | **-1.87%** | **-3.39%** | **-13.67%** | **-3.10%** | **-19.90%** | **30.11%** | **4.99%** |
+
+**Comparación Rentabilidad ANUALIZADA:**
+
+| AFP | May 2025/May 2024<br>(1A) Nominal | May 2025/May 2024<br>(1A) Real | May 2025/May 2023<br>(2A) Nominal | May 2025/May 2023<br>(2A) Real | May 2025/May 2022<br>(3A) Nominal | May 2025/May 2022<br>(3A) Real | May 2025/May 2021<br>(4A) Nominal | May 2025/May 2021<br>(4A) Real | May 2025/May 2020<br>(5A) Nominal | May 2025/May 2020<br>(5A) Real |
+|-----|------------|---------|------------|---------|------------|---------|------------|---------|------------|---------|
+| **Habitat** | **0.14%** | **-1.52%** | **8.46%** | **6.49%** | **3.91%** | **0.08%** | **3.33%** | **-1.47%** | **9.37%** | **4.78%** |
+| **Prima** ⭐ | **-10.28%** | **-11.77%** | **0.89%** | **-0.94%** | **-1.14%** | **-4.78%** | **-0.78%** | **-5.40%** | **5.41%** | **0.98%** |
+
+
 
 INSTRUCCIONES OBLIGATORIAS:
 1. Usa funciones para obtener datos reales con section_type="both"
@@ -407,25 +476,6 @@ INSTRUCCIONES OBLIGATORIAS:
 11. Al destacar a **Prima**, no desinformir ni omitir datos del resto de AFP. La comparación debe ser justa y mostrar ambos tipos de rentabilidad (acumulada y anualizada) cuando estén disponibles.
 12.  **SIEMPRE** usar los datos correctos para cada sección y especificar claramente si es rentabilidad acumulada o anualizada y nominal y real.
 13. **SIEMPRE** incluir tabla comparativa con datos de rentabilidad acumulada y anualizada y dentro de cada tabla datos nominlaes y reales.
-14. **Cobertura Temporal:** Cuando la pregunta indique un rango de fechas (ej. “de mayo 2021 a mayo 2025”), incluye datos del rango completo disponible, incluye todos los periodos dentro del rango.
-15. **Columnas adicionales:** Si la consulta abarca más de un año, incluye las columnas o tablas necesarias con la rentabilidad por periodo completo y cada mes.
-Por ejemplo si pregunta: dame la rentabilidad comparada de PRIMA vs Habitat, de mayo 2021 a mayo 2025, del fondo 3: 
-
-**Comparación Rentabilidad ACUMULADA:**
-| AFP | May 2025/May 2024<br>(1A) Nominal | May 2025/May 2024<br>(1A) Real | May 2025/May 2023<br>(2A) Nominal | May 2025/May 2023<br>(2A) Real | May 2025/May 2022<br>(3A) Nominal | May 2025/May 2022<br>(3A) Real | May 2025/May 2021<br>(4A) Nominal | May 2025/May 2021<br>(4A) Real | May 2025/May 2020<br>(5A) Nominal | May 2025/May 2020<br>(5A) Real |
-|-----|------------|---------|------------|---------|------------|---------|------------|---------|------------|---------|
-| **Habitat** | **0.14%** | **-1.52%** | **17.64%** | **13.41%** | **12.19%** | **0.25%** | **13.99%** | **-5.77%** | **56.51%** | **26.29%** |
-| **Prima** ⭐ | **-10.28%** | **-11.77%** | **1.78%** | **-1.87%** | **-3.39%** | **-13.67%** | **-3.10%** | **-19.90%** | **30.11%** | **4.99%** |
-
-**Comparación Rentabilidad ANUALIZADA:**
-
-| AFP | May 2025/May 2024<br>(1A) Nominal | May 2025/May 2024<br>(1A) Real | May 2025/May 2023<br>(2A) Nominal | May 2025/May 2023<br>(2A) Real | May 2025/May 2022<br>(3A) Nominal | May 2025/May 2022<br>(3A) Real | May 2025/May 2021<br>(4A) Nominal | May 2025/May 2021<br>(4A) Real | May 2025/May 2020<br>(5A) Nominal | May 2025/May 2020<br>(5A) Real |
-|-----|------------|---------|------------|---------|------------|---------|------------|---------|------------|---------|
-| **Habitat** | **0.14%** | **-1.52%** | **8.46%** | **6.49%** | **3.91%** | **0.08%** | **3.33%** | **-1.47%** | **9.37%** | **4.78%** |
-| **Prima** ⭐ | **-10.28%** | **-11.77%** | **0.89%** | **-0.94%** | **-1.14%** | **-4.78%** | **-0.78%** | **-5.40%** | **5.41%** | **0.98%** |
-
-Como puedes ver detalla informacion hasta el 2021
-
 15. **Consultas incompletas:** Si faltan datos para algún año del rango solicitado, indícalo claramente con el mensaje **“Datos incompletos para el rango solicitado”** en la respuesta.
 16. "Cada viñeta debe estar en UNA LÍNEA SEPARADA". "NO unir múltiples puntos en un solo párrafo". "SIEMPRE salto de línea después de cada viñeta"
 17. Los titulos que muestres en la tabla de rentabilidad acumulada, tambien se deben mostrar en rentabilidad anualizada. 
@@ -536,6 +586,8 @@ ESTILO PROFESIONAL:
             return self._compare_accumulated_vs_annualized(arguments)
         elif function_name == "get_calculation_types_summary":
             return self._get_calculation_types_summary(arguments)
+        elif function_name == "get_rentability_by_date_range":
+            return self._get_rentability_by_date_range(arguments)
         else:
             return {"error": f"Función {function_name} no encontrada"}
 
@@ -714,6 +766,17 @@ ESTILO PROFESIONAL:
                 "note": "Funcionalidad enhanced no disponible con data manager actual",
             }
 
+    def _get_rentability_by_date_range(self, args: Dict) -> Dict:
+        """Obtiene rentabilidad para un RANGO COMPLETO de períodos"""
+        afp_names = args.get("afp_names", [])
+        fund_types = args.get("fund_types", [])  
+        start_period = args.get("start_period", "")
+        end_period = args.get("end_period", "")
+        rentability_type = args.get("rentability_type", "both")
+        
+        return self.data_manager.get_rentability_by_date_range(
+            afp_names, fund_types, start_period, end_period, rentability_type
+        )
 
 # Función para Azure Functions
 def main(req):

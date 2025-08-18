@@ -884,6 +884,126 @@ class RentabilityDataManager:
 
         return comparison
 
+    def get_rentability_by_date_range(
+        self,
+        afp_names: List[str],
+        fund_types: List[int],
+        start_period: str,
+        end_period: str,
+        rentability_type: str = "both",
+    ) -> Dict:
+        """
+        ✅ NUEVO: Obtiene rentabilidad para RANGO COMPLETO de períodos
+        Ejemplo: de mayo 2021 a mayo 2025
+        """
+        try:
+            result = {
+                "query_info": {
+                    "afp_names": afp_names,
+                    "fund_types": fund_types,
+                    "start_period": start_period,
+                    "end_period": end_period,
+                    "rentability_type": rentability_type,
+                },
+                "data_by_fund_type": {},
+                "periods_found": [],
+                "periods_missing": [],
+            }
+
+            # Generar lista de períodos en el rango
+            target_periods = self._generate_period_range(start_period, end_period)
+
+            for fund_type in fund_types:
+                fund_data = {
+                    "fund_type": fund_type,
+                    "afp_data": {},
+                    "periods_available": [],
+                    "periods_with_data": [],
+                }
+
+                # Obtener períodos disponibles para este tipo de fondo
+                available_periods = self.get_available_periods(fund_type)
+
+                # Filtrar períodos en el rango solicitado
+                relevant_periods = [p for p in available_periods if p in target_periods]
+                fund_data["periods_available"] = relevant_periods
+
+                if not relevant_periods:
+                    fund_data["error"] = (
+                        f"No hay datos para fondo tipo {fund_type} en el rango {start_period} - {end_period}"
+                    )
+                    result["data_by_fund_type"][f"fund_{fund_type}"] = fund_data
+                    continue
+
+                # Para cada AFP solicitada
+                for afp_name in afp_names:
+                    afp_periods_data = {}
+
+                    # Para cada período en el rango
+                    for period in relevant_periods:
+                        period_data = self.get_rentability_by_afp(
+                            afp_name, fund_type, period
+                        )
+
+                        if "error" not in period_data:
+                            afp_periods_data[period] = period_data["rentability_data"]
+                            if period not in fund_data["periods_with_data"]:
+                                fund_data["periods_with_data"].append(period)
+
+                    if afp_periods_data:
+                        fund_data["afp_data"][afp_name] = afp_periods_data
+
+                result["data_by_fund_type"][f"fund_{fund_type}"] = fund_data
+
+            # Consolidar períodos encontrados y faltantes
+            all_periods_found = set()
+            for fund_data in result["data_by_fund_type"].values():
+                all_periods_found.update(fund_data.get("periods_with_data", []))
+
+            result["periods_found"] = sorted(list(all_periods_found))
+            result["periods_missing"] = [
+                p for p in target_periods if p not in all_periods_found
+            ]
+
+            return result
+
+        except Exception as e:
+            return {"error": f"Error obteniendo rango de períodos: {str(e)}"}
+
+    def _generate_period_range(self, start_period: str, end_period: str) -> List[str]:
+        """Genera lista de períodos entre start y end (formato YYYY-MM)"""
+        from datetime import datetime, timedelta
+        import calendar
+
+        try:
+            # Parsear fechas
+            start_year, start_month = map(int, start_period.split("-"))
+            end_year, end_month = map(int, end_period.split("-"))
+
+            periods = []
+
+            current_year = start_year
+            current_month = start_month
+
+            while (current_year < end_year) or (
+                current_year == end_year and current_month <= end_month
+            ):
+                period_str = f"{current_year}-{current_month:02d}"
+                periods.append(period_str)
+
+                # Avanzar al siguiente mes
+                current_month += 1
+                if current_month > 12:
+                    current_month = 1
+                    current_year += 1
+
+            return periods
+
+        except Exception as e:
+            # Fallback: devolver lista de períodos conocidos en el rango
+            available_periods = self.get_available_periods()
+            return [p for p in available_periods if start_period <= p <= end_period]
+
 
 # Instancia global del gestor de datos
 data_manager = None
