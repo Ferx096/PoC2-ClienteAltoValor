@@ -179,7 +179,6 @@ class RentabilityDataManager:
                     "period": period,
                     "rentability_data": afp_data["rentability_data"],
                     "periods_available": data.get("periods_available", []),
-                    "data_source": f"Archivo oficial SPP - {period}",
                 }
 
         return {"error": f"AFP {afp_name} no encontrada en los datos"}
@@ -308,7 +307,6 @@ class RentabilityDataManager:
         return {
             "fund_analysis": analysis,
             "recommendation": self._generate_fund_recommendation(fund_types),
-            "data_source": "Análisis basado en datos oficiales SPP",
         }
 
     def _calculate_average_rentability(self, fund_type: int, afp_filter: str) -> Dict:
@@ -378,7 +376,6 @@ class RentabilityDataManager:
                 f"fund_type_{ft}": len(self.get_available_periods(ft))
                 for ft in self.get_available_fund_types()
             },
-            "data_source": "Azure Blob Storage",
         }
 
     def refresh_data(self):

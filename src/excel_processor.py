@@ -176,26 +176,41 @@ class ExcelProcessor:
                 elif "FP-1220-2" in filename or "FP12202" in filename:
                     extracted["fund_type"] = 3
 
-            # Extraer período del nombre del archivo
+            # Extraer período del nombre del archivo con múltiples patrones
             period_match = re.search(r"(\w{2})(\d{4})", filename)
             if period_match:
-                month_abbr = period_match.group(1)
+                month_abbr = period_match.group(1).lower()
                 year = period_match.group(2)
                 month_map = {
-                    "en": "01",
-                    "fe": "02",
-                    "ma": "03",
-                    "ab": "04",
-                    "my": "05",
-                    "jn": "06",
-                    "jl": "07",
-                    "ag": "08",
-                    "se": "09",
-                    "oc": "10",
-                    "no": "11",
-                    "di": "12",
+                    "en": "01", "enero": "01",
+                    "fe": "02", "feb": "02", "febrero": "02",
+                    "ma": "03", "mar": "03", "marzo": "03",
+                    "ab": "04", "abr": "04", "abril": "04",
+                    "my": "05", "may": "05", "mayo": "05",
+                    "jn": "06", "jun": "06", "junio": "06",
+                    "jl": "07", "jul": "07", "julio": "07",
+                    "ag": "08", "ago": "08", "agosto": "08",
+                    "se": "09", "sep": "09", "septiembre": "09",
+                    "oc": "10", "oct": "10", "octubre": "10",
+                    "no": "11", "nov": "11", "noviembre": "11",
+                    "di": "12", "dic": "12", "diciembre": "12",
                 }
                 extracted["period"] = f"{year}-{month_map.get(month_abbr, '01')}"
+            else:
+                # Intentar otros patrones de fecha
+                date_patterns = [
+                    r"(\d{4})-(\d{2})",  # YYYY-MM
+                    r"(\d{2})-(\d{4})",  # MM-YYYY
+                    r"(\d{4})(\d{2})",   # YYYYMM
+                ]
+                for pattern in date_patterns:
+                    match = re.search(pattern, filename)
+                    if match:
+                        if len(match.group(1)) == 4:  # Año primero
+                            extracted["period"] = f"{match.group(1)}-{match.group(2)}"
+                        else:  # Mes primero
+                            extracted["period"] = f"{match.group(2)}-{match.group(1)}"
+                        break
 
             # ✅ ENHANCED: Detectar ubicación de las 2 tablas (ACUMULADA y ANUALIZADA)
             table_locations = self._detect_table_locations(df)
@@ -250,7 +265,7 @@ class ExcelProcessor:
 
         # Buscar indicadores de tablas en el Excel
         for i in range(min(30, len(df))):  # Buscar en las primeras 30 filas
-            for j in range(min(10, df.shape[1])):  # Primeras 10 columnas
+            for j in range(min(30, df.shape[1])):  # Primeras 30 columnas
                 cell_value = str(df.iloc[i, j]).upper().strip()
 
                 # Detectar tabla ACUMULADA
@@ -322,16 +337,21 @@ class ExcelProcessor:
                     ):
                         periods.append(period_cell.strip())
 
-            # Extraer datos de AFPs
-            afp_names = ["Habitat", "Integra", "Prima", "Profuturo"]
+            # Extraer datos de AFPs con variaciones de nombres
+            afp_names = {
+                "Habitat": ["habitat", "hábitat"],
+                "Integra": ["integra", "íntegra"],
+                "Prima": ["prima"],
+                "Profuturo": ["profuturo", "pro futuro"]
+            }
 
             for idx in range(
                 start_row, min(start_row + 6, len(df))
             ):  # Máximo 6 filas después del inicio
-                afp_name_cell = str(df.iloc[idx, 0])
+                afp_name_cell = str(df.iloc[idx, 0]).lower()
 
-                for afp in afp_names:
-                    if afp.lower() in afp_name_cell.lower():
+                for afp, variations in afp_names.items():
+                    if any(variation in afp_name_cell for variation in variations):
                         afp_rentability = {
                             "afp_name": afp,
                             "table_type": table_type,  # ✅ "accumulated" o "annualized"
@@ -467,26 +487,41 @@ class ExcelProcessor:
                 elif "FP-1220-2" in filename:
                     extracted["fund_type"] = 3
 
-            # Extraer período del nombre del archivo
+            # Extraer período del nombre del archivo con múltiples patrones
             period_match = re.search(r"(\w{2})(\d{4})", filename)
             if period_match:
-                month_abbr = period_match.group(1)
+                month_abbr = period_match.group(1).lower()
                 year = period_match.group(2)
                 month_map = {
-                    "en": "01",
-                    "fe": "02",
-                    "ma": "03",
-                    "ab": "04",
-                    "my": "05",
-                    "jn": "06",
-                    "jl": "07",
-                    "ag": "08",
-                    "se": "09",
-                    "oc": "10",
-                    "no": "11",
-                    "di": "12",
+                    "en": "01", "enero": "01",
+                    "fe": "02", "feb": "02", "febrero": "02",
+                    "ma": "03", "mar": "03", "marzo": "03",
+                    "ab": "04", "abr": "04", "abril": "04",
+                    "my": "05", "may": "05", "mayo": "05",
+                    "jn": "06", "jun": "06", "junio": "06",
+                    "jl": "07", "jul": "07", "julio": "07",
+                    "ag": "08", "ago": "08", "agosto": "08",
+                    "se": "09", "sep": "09", "septiembre": "09",
+                    "oc": "10", "oct": "10", "octubre": "10",
+                    "no": "11", "nov": "11", "noviembre": "11",
+                    "di": "12", "dic": "12", "diciembre": "12",
                 }
                 extracted["period"] = f"{year}-{month_map.get(month_abbr, '01')}"
+            else:
+                # Intentar otros patrones de fecha
+                date_patterns = [
+                    r"(\d{4})-(\d{2})",  # YYYY-MM
+                    r"(\d{2})-(\d{4})",  # MM-YYYY
+                    r"(\d{4})(\d{2})",   # YYYYMM
+                ]
+                for pattern in date_patterns:
+                    match = re.search(pattern, filename)
+                    if match:
+                        if len(match.group(1)) == 4:  # Año primero
+                            extracted["period"] = f"{match.group(1)}-{match.group(2)}"
+                        else:  # Mes primero
+                            extracted["period"] = f"{match.group(2)}-{match.group(1)}"
+                        break
 
             # Extraer períodos disponibles de las columnas (fila 4 contiene los períodos)
             periods = []
@@ -511,19 +546,24 @@ class ExcelProcessor:
             extracted["period_labels"] = period_labels
 
             # ✅ EXTRAER DATOS DE AMBAS SECCIONES: ACUMULADA Y ANUALIZADA
-            afp_names = ["Habitat", "Integra", "Prima", "Profuturo"]
+            afp_names = {
+                "Habitat": ["habitat", "hábitat"],
+                "Integra": ["integra", "íntegra"],
+                "Prima": ["prima"],
+                "Profuturo": ["profuturo", "pro futuro"]
+            }
             
             # Crear diccionario para almacenar datos por AFP
             afp_data_dict = {}
-            for afp in afp_names:
+            for afp in afp_names.keys():
                 afp_data_dict[afp] = {"afp_name": afp, "rentability_data": {}}
 
             # ✅ SECCIÓN 1: RENTABILIDAD ACUMULADA (filas 7-10)
             for idx in range(7, min(11, len(df))):
-                afp_name_cell = str(df.iloc[idx, 0])
+                afp_name_cell = str(df.iloc[idx, 0]).lower()
 
-                for afp in afp_names:
-                    if afp.lower() in afp_name_cell.lower():
+                for afp, variations in afp_names.items():
+                    if any(variation in afp_name_cell for variation in variations):
                         # Extraer datos de rentabilidad ACUMULADA por período
                         col_idx = 1
                         for i, period in enumerate(periods):
@@ -574,10 +614,10 @@ class ExcelProcessor:
             if anualizada_start_row:
                 # Extraer datos de rentabilidad ANUALIZADA (aproximadamente 6 filas después del título)
                 for idx in range(anualizada_start_row + 6, min(anualizada_start_row + 10, len(df))):
-                    afp_name_cell = str(df.iloc[idx, 0])
+                    afp_name_cell = str(df.iloc[idx, 0]).lower()
 
-                    for afp in afp_names:
-                        if afp.lower() in afp_name_cell.lower():
+                    for afp, variations in afp_names.items():
+                        if any(variation in afp_name_cell for variation in variations):
                             # Extraer datos de rentabilidad ANUALIZADA por período
                             col_idx = 1
                             for i, period in enumerate(periods):

@@ -543,16 +543,16 @@ def enhance_chat_query(user_query: str) -> str:
         word in user_query.lower()
         for word in ["acumulad", "anualiz", "total", "promedio anual"]
     ):
-        enhanced_query += " (Incluye tanto rentabilidad acumulada como anualizada en tu respuesta, explicando las diferencias)"
+        enhanced_query += " (Incluye tanto rentabilidad acumulada como anualizada)"
 
     # Detectar comparaciones
     if any(
         word in user_query.lower() for word in ["compar", "vs", "versus", "diferencia"]
     ):
-        enhanced_query += " (Usa funciones enhanced para mostrar comparaciones detalladas entre tipos de cálculo)"
+        enhanced_query += " (Muestra comparación detallada entre AFPs)"
 
-    # Asegurar formato estructurado
-    enhanced_query += " (Responde con formato estructurado usando títulos con **TITULO:**, tablas en formato markdown, y destacando AFP Prima)"
+    # Asegurar formato estructurado sin caracteres problemáticos
+    enhanced_query += " (Responde con formato de tabla markdown, usa **TITULO:** para títulos, NO uses # ni hagas preguntas adicionales)"
 
     return enhanced_query
 

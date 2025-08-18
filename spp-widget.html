@@ -457,6 +457,10 @@
         function formatResponse(text) {
             let formatted = text;
 
+            // Filtrar caracteres problemáticos
+            formatted = formatted.replace(/^#+\s*/gm, ''); // Eliminar # al inicio de líneas
+            formatted = formatted.replace(/#+/g, ''); // Eliminar # restantes
+
             // Convertir títulos marcados con **TEXTO:**
             formatted = formatted.replace(/\*\*(.*?):\*\*/g, '<h3><strong>$1:</strong></h3>');
 
@@ -550,7 +554,7 @@
                         'Access-Control-Allow-Origin': '*'
                     },
                     body: JSON.stringify({
-                        query: query + " (Responde con formato estructurado usando títulos con **TITULO:**, tablas en formato markdown cuando sea apropiado, y negritas para destacar datos importantes)"
+                        query: query
                     })
                 });
 
