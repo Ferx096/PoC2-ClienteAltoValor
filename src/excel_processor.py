@@ -210,68 +210,116 @@ class ExcelProcessor:
             extracted["periods_available"] = periods
             extracted["period_labels"] = period_labels
 
-            # Extraer datos de AFPs (filas 7-10 aproximadamente)
+            # ✅ EXTRAER DATOS DE AMBAS SECCIONES: ACUMULADA Y ANUALIZADA
             afp_names = ["Habitat", "Integra", "Prima", "Profuturo"]
+            
+            # Crear diccionario para almacenar datos por AFP
+            afp_data_dict = {}
+            for afp in afp_names:
+                afp_data_dict[afp] = {"afp_name": afp, "rentability_data": {}}
 
+            # ✅ SECCIÓN 1: RENTABILIDAD ACUMULADA (filas 7-10)
             for idx in range(7, min(11, len(df))):
                 afp_name_cell = str(df.iloc[idx, 0])
 
                 for afp in afp_names:
                     if afp.lower() in afp_name_cell.lower():
-                        afp_data = {"afp_name": afp, "rentability_data": {}}
-
-                        # Extraer datos de rentabilidad por período - estructura real
+                        # Extraer datos de rentabilidad ACUMULADA por período
                         col_idx = 1
                         for i, period in enumerate(periods):
                             if col_idx < df.shape[1]:
-                                # ✅ RENTABILIDAD NOMINAL - CON FILTRADO MEJORADO
+                                # RENTABILIDAD NOMINAL ACUMULADA
                                 nominal_val = df.iloc[idx, col_idx]
                                 if self._is_valid_numeric_value(nominal_val):
                                     nominal_float = self._convert_to_float(nominal_val)
                                     if nominal_float is not None:
-                                        # Guardar con múltiples claves para facilitar búsqueda
-                                        period_key = f"period_{i+1}_nominal"
-                                        afp_data["rentability_data"][
-                                            period_key
-                                        ] = nominal_float
-                                        afp_data["rentability_data"][
-                                            f"{period}_nominal"
-                                        ] = nominal_float
+                                        # Claves específicas para ACUMULADA
+                                        period_key = f"period_{i+1}_accumulated_nominal"
+                                        afp_data_dict[afp]["rentability_data"][period_key] = nominal_float
+                                        afp_data_dict[afp]["rentability_data"][f"{period}_accumulated_nominal"] = nominal_float
 
                                         # También guardar con clave descriptiva
                                         if i < len(period_labels):
-                                            label_key = f"{period_labels[i]}_nominal"
-                                            afp_data["rentability_data"][
-                                                label_key
-                                            ] = nominal_float
+                                            label_key = f"{period_labels[i]}_accumulated_nominal"
+                                            afp_data_dict[afp]["rentability_data"][label_key] = nominal_float
 
-                                # ✅ RENTABILIDAD REAL - CON FILTRADO MEJORADO
+                                # RENTABILIDAD REAL ACUMULADA
                                 if col_idx + 1 < df.shape[1]:
                                     real_val = df.iloc[idx, col_idx + 1]
                                     if self._is_valid_numeric_value(real_val):
                                         real_float = self._convert_to_float(real_val)
                                         if real_float is not None:
-                                            # Guardar con múltiples claves para facilitar búsqueda
-                                            period_key = f"period_{i+1}_real"
-                                            afp_data["rentability_data"][
-                                                period_key
-                                            ] = real_float
-                                            afp_data["rentability_data"][
-                                                f"{period}_real"
-                                            ] = real_float
+                                            # Claves específicas para ACUMULADA
+                                            period_key = f"period_{i+1}_accumulated_real"
+                                            afp_data_dict[afp]["rentability_data"][period_key] = real_float
+                                            afp_data_dict[afp]["rentability_data"][f"{period}_accumulated_real"] = real_float
 
                                             # También guardar con clave descriptiva
                                             if i < len(period_labels):
-                                                label_key = f"{period_labels[i]}_real"
-                                                afp_data["rentability_data"][
-                                                    label_key
-                                                ] = real_float
+                                                label_key = f"{period_labels[i]}_accumulated_real"
+                                                afp_data_dict[afp]["rentability_data"][label_key] = real_float
 
                                 col_idx += 2
-
-                        if afp_data["rentability_data"]:
-                            extracted["afp_data"].append(afp_data)
                         break
+
+            # ✅ SECCIÓN 2: RENTABILIDAD ANUALIZADA 
+            # Buscar la fila que contiene "Anualizada" en todo el archivo
+            anualizada_start_row = None
+            for i in range(len(df)):
+                cell_value = str(df.iloc[i, 0]).lower()
+                if 'anualizada' in cell_value:
+                    anualizada_start_row = i
+                    break
+            
+            if anualizada_start_row:
+                # Extraer datos de rentabilidad ANUALIZADA (aproximadamente 6 filas después del título)
+                for idx in range(anualizada_start_row + 6, min(anualizada_start_row + 10, len(df))):
+                    afp_name_cell = str(df.iloc[idx, 0])
+
+                    for afp in afp_names:
+                        if afp.lower() in afp_name_cell.lower():
+                            # Extraer datos de rentabilidad ANUALIZADA por período
+                            col_idx = 1
+                            for i, period in enumerate(periods):
+                                if col_idx < df.shape[1]:
+                                    # RENTABILIDAD NOMINAL ANUALIZADA
+                                    nominal_val = df.iloc[idx, col_idx]
+                                    if self._is_valid_numeric_value(nominal_val):
+                                        nominal_float = self._convert_to_float(nominal_val)
+                                        if nominal_float is not None:
+                                            # Claves específicas para ANUALIZADA
+                                            period_key = f"period_{i+1}_annualized_nominal"
+                                            afp_data_dict[afp]["rentability_data"][period_key] = nominal_float
+                                            afp_data_dict[afp]["rentability_data"][f"{period}_annualized_nominal"] = nominal_float
+
+                                            # También guardar con clave descriptiva
+                                            if i < len(period_labels):
+                                                label_key = f"{period_labels[i]}_annualized_nominal"
+                                                afp_data_dict[afp]["rentability_data"][label_key] = nominal_float
+
+                                    # RENTABILIDAD REAL ANUALIZADA
+                                    if col_idx + 1 < df.shape[1]:
+                                        real_val = df.iloc[idx, col_idx + 1]
+                                        if self._is_valid_numeric_value(real_val):
+                                            real_float = self._convert_to_float(real_val)
+                                            if real_float is not None:
+                                                # Claves específicas para ANUALIZADA
+                                                period_key = f"period_{i+1}_annualized_real"
+                                                afp_data_dict[afp]["rentability_data"][period_key] = real_float
+                                                afp_data_dict[afp]["rentability_data"][f"{period}_annualized_real"] = real_float
+
+                                                # También guardar con clave descriptiva
+                                                if i < len(period_labels):
+                                                    label_key = f"{period_labels[i]}_annualized_real"
+                                                    afp_data_dict[afp]["rentability_data"][label_key] = real_float
+
+                                    col_idx += 2
+                            break
+
+            # Agregar todos los datos de AFPs al resultado
+            for afp_data in afp_data_dict.values():
+                if afp_data["rentability_data"]:
+                    extracted["afp_data"].append(afp_data)
 
             logging.info(
                 f"Extraídos datos para {len(extracted['afp_data'])} AFPs del archivo {filename}"
