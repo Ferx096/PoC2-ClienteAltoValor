@@ -535,12 +535,25 @@ class AutoUpdatingDataManager:
         }
 
     def get_rentability_by_date_range(
-        self, afp_names, fund_types, start_period, end_period, rentability_type="both"
-    ):
-        """✅ NUEVO: Versión enhanced para production cache"""
+        self,
+        afp_names: List[str],
+        fund_types: List[int],
+        start_period: str,
+        end_period: str,
+        rentability_type: str = "both",
+    ) -> Dict:
+        """
+        ✅ VERSIÓN CORREGIDA PARA PRODUCTION CACHE
+        Obtiene rentabilidad para RANGO COMPLETO de períodos usando cache híbrido
+        """
         try:
-            # Auto-refresh check
+            # ✅ NUEVO: Auto-refresh check ANTES de procesar
             self._auto_refresh_check()
+
+            print(f"🔍 PRODUCTION CACHE RANGE QUERY:")
+            print(f"   AFPs: {afp_names}")
+            print(f"   Fondos: {fund_types}")
+            print(f"   Rango: {start_period} → {end_period}")
 
             result = {
                 "query_info": {
@@ -556,8 +569,9 @@ class AutoUpdatingDataManager:
                 "cache_source": "production_cache_enhanced",
             }
 
-            # Generar lista de períodos en el rango
+            # ✅ CORREGIDO: Generar períodos con método mejorado
             target_periods = self._generate_period_range(start_period, end_period)
+            print(f"📅 Períodos objetivo: {target_periods}")
 
             for fund_type in fund_types:
                 fund_data = {
@@ -567,75 +581,165 @@ class AutoUpdatingDataManager:
                     "periods_with_data": [],
                 }
 
-                # Obtener períodos disponibles para este tipo de fondo
+                # ✅ USAR CACHE HÍBRIDO: Obtener períodos disponibles
                 available_periods = self.get_available_periods(fund_type)
+                print(
+                    f"📊 Cache - Períodos disponibles para fondo {fund_type}: {len(available_periods)}"
+                )
 
-                # Filtrar períodos en el rango solicitado
-                relevant_periods = [p for p in available_periods if p in target_periods]
+                # ✅ CORREGIDO: Filtrar períodos en el rango Y disponibles
+                relevant_periods = []
+                for period in available_periods:
+                    if start_period <= period <= end_period:
+                        relevant_periods.append(period)
+
+                relevant_periods.sort()
                 fund_data["periods_available"] = relevant_periods
+                print(f"🎯 Períodos relevantes: {relevant_periods}")
 
                 if not relevant_periods:
                     fund_data["error"] = (
-                        f"No hay datos para fondo tipo {fund_type} en el rango {start_period} - {end_period}"
+                        f"No hay datos en cache para fondo tipo {fund_type} en rango {start_period}-{end_period}"
                     )
                     result["data_by_fund_type"][f"fund_{fund_type}"] = fund_data
                     continue
 
-                # Para cada AFP solicitada
+                # ✅ CORREGIDO: Para cada AFP, usar método enhanced del cache
                 for afp_name in afp_names:
                     afp_periods_data = {}
+                    afp_successful_periods = []
 
-                    # Para cada período en el rango
                     for period in relevant_periods:
-                        # ✅ USA EL CACHE HÍBRIDO EXISTENTE
-                        period_data = self.get_rentability_by_afp_enhanced(
-                            afp_name, fund_type, period, "both"
-                        )
+                        try:
+                            # ✅ USAR MÉTODO ENHANCED del cache si existe
+                            if hasattr(self, "get_rentability_by_afp_enhanced"):
+                                period_data = self.get_rentability_by_afp_enhanced(
+                                    afp_name, fund_type, period, "both"
+                                )
+                            else:
+                                # Fallback al método básico
+                                period_data = self.get_rentability_by_afp(
+                                    afp_name, fund_type, period
+                                )
 
-                        if "error" not in period_data:
-                            afp_periods_data[period] = period_data["rentability_data"]
-                            if period not in fund_data["periods_with_data"]:
-                                fund_data["periods_with_data"].append(period)
+                            if "error" not in period_data:
+                                # ✅ CORREGIDO: Estructura correcta de datos
+                                rentability_data = period_data.get(
+                                    "rentability_data", {}
+                                )
+                                afp_periods_data[period] = rentability_data
+                                afp_successful_periods.append(period)
 
+                                print(
+                                    f"✅ Cache hit: {afp_name} - {period} ({len(rentability_data)} datos)"
+                                )
+                            else:
+                                print(
+                                    f"⚠️  Cache miss: {afp_name} - {period}: {period_data.get('error', 'Sin datos')}"
+                                )
+
+                        except Exception as e:
+                            print(f"❌ Error cache: {afp_name} - {period}: {str(e)}")
+
+                    # ✅ CORREGIDO: Solo agregar AFP si tiene datos
                     if afp_periods_data:
                         fund_data["afp_data"][afp_name] = afp_periods_data
 
+                        # Actualizar períodos con datos para este fondo
+                        for period in afp_successful_periods:
+                            if period not in fund_data["periods_with_data"]:
+                                fund_data["periods_with_data"].append(period)
+
+                # ✅ CORREGIDO: Ordenar períodos con datos
+                fund_data["periods_with_data"].sort()
                 result["data_by_fund_type"][f"fund_{fund_type}"] = fund_data
 
-            # Consolidar períodos encontrados y faltantes
+                print(
+                    f"📊 Fondo {fund_type} procesado: {len(fund_data['afp_data'])} AFPs, {len(fund_data['periods_with_data'])} períodos"
+                )
+
+            # ✅ CORREGIDO: Consolidar períodos encontrados globalmente
             all_periods_found = set()
             for fund_data in result["data_by_fund_type"].values():
-                all_periods_found.update(fund_data.get("periods_with_data", []))
+                if "periods_with_data" in fund_data:
+                    all_periods_found.update(fund_data["periods_with_data"])
 
             result["periods_found"] = sorted(list(all_periods_found))
             result["periods_missing"] = [
                 p for p in target_periods if p not in all_periods_found
             ]
 
+            # ✅ NUEVO: Estadísticas del cache híbrido
+            cache_stats = self.cache_manager.get_cache_stats()
+            result["cache_performance"] = {
+                "periods_found": len(result["periods_found"]),
+                "periods_missing": len(result["periods_missing"]),
+                "cache_hit_rate": (
+                    f"{len(result['periods_found'])/len(target_periods)*100:.1f}%"
+                    if target_periods
+                    else "0%"
+                ),
+                "cache_system": "production_hybrid",
+                "cache_entries": cache_stats.get("ram_cache_entries", 0),
+            }
+
+            print(f"🎯 RESULTADO FINAL:")
+            print(f"   • Períodos encontrados: {len(result['periods_found'])}")
+            print(f"   • Períodos faltantes: {len(result['periods_missing'])}")
+            print(f"   • Hit rate: {result['cache_performance']['cache_hit_rate']}")
+
             return result
 
         except Exception as e:
+            print(f"❌ Error en production cache range query: {str(e)}")
+            import traceback
+
+            print(f"💥 Traceback: {traceback.format_exc()}")
+
             return {
-                "error": f"Error obteniendo rango de períodos desde cache híbrido: {str(e)}"
+                "error": f"Error en cache híbrido obteniendo rango: {str(e)}",
+                "query_info": {
+                    "afp_names": afp_names,
+                    "fund_types": fund_types,
+                    "start_period": start_period,
+                    "end_period": end_period,
+                },
+                "cache_source": "production_cache_error",
             }
 
     def _generate_period_range(self, start_period: str, end_period: str) -> List[str]:
-        """✅ NUEVO: Genera lista de períodos para production cache"""
-        from datetime import datetime
-
+        """
+        ✅ MÉTODO ENHANCED PARA PRODUCTION CACHE
+        Genera períodos con manejo mejorado de formatos
+        """
         try:
+            print(f"🔄 Generando rango: {start_period} → {end_period}")
+
+            # ✅ CORREGIDO: Manejar diferentes formatos de entrada
+            if len(start_period) == 4:  # Solo año "2022"
+                start_period = f"{start_period}-01"
+            if len(end_period) == 4:  # Solo año "2025"
+                end_period = f"{end_period}-12"
+
             # Parsear fechas
-            start_year, start_month = map(int, start_period.split("-"))
-            end_year, end_month = map(int, end_period.split("-"))
+            start_parts = start_period.split("-")
+            end_parts = end_period.split("-")
+
+            start_year, start_month = int(start_parts[0]), int(start_parts[1])
+            end_year, end_month = int(end_parts[0]), int(end_parts[1])
 
             periods = []
-
             current_year = start_year
             current_month = start_month
 
-            while (current_year < end_year) or (
-                current_year == end_year and current_month <= end_month
-            ):
+            # ✅ GENERAR todos los meses en el rango
+            max_iterations = 60  # Protección contra loops infinitos
+            iterations = 0
+
+            while (
+                current_year < end_year
+                or (current_year == end_year and current_month <= end_month)
+            ) and iterations < max_iterations:
                 period_str = f"{current_year}-{current_month:02d}"
                 periods.append(period_str)
 
@@ -645,12 +749,28 @@ class AutoUpdatingDataManager:
                     current_month = 1
                     current_year += 1
 
+                iterations += 1
+
+            print(
+                f"📅 Períodos generados ({len(periods)}): {periods[:5]}{'...' if len(periods) > 5 else ''}"
+            )
             return periods
 
         except Exception as e:
-            # Fallback: usar períodos disponibles en el cache
-            available_periods = self.get_available_periods()
-            return [p for p in available_periods if start_period <= p <= end_period]
+            print(f"❌ Error generando períodos enhanced: {str(e)}")
+
+            # ✅ FALLBACK: usar períodos del cache
+            try:
+                available_periods = self.get_available_periods()
+                filtered = [
+                    p for p in available_periods if start_period <= p <= end_period
+                ]
+                filtered.sort()
+                print(f"🔄 Fallback del cache: {len(filtered)} períodos")
+                return filtered
+            except:
+                print(f"💥 Fallback también falló, devolviendo lista vacía")
+                return []
 
 
 # Función para integrar con el sistema existente
