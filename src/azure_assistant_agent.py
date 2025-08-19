@@ -276,7 +276,6 @@ class SPPAssistantAgent:
                     },
                 },
             },
-                
             {
                 "type": "function",
                 "function": {
@@ -288,31 +287,37 @@ class SPPAssistantAgent:
                             "afp_names": {
                                 "type": "array",
                                 "items": {"type": "string"},
-                                "description": "Lista de AFPs a consultar (ej: ['Habitat', 'Integra', 'Prima', 'Profuturo'])"
+                                "description": "Lista de AFPs a consultar (ej: ['Habitat', 'Integra', 'Prima', 'Profuturo'])",
                             },
                             "fund_types": {
-                                "type": "array", 
+                                "type": "array",
                                 "items": {"type": "integer"},
-                                "description": "Tipos de fondos a consultar (ej: [2, 3])"
+                                "description": "Tipos de fondos a consultar (ej: [2, 3])",
                             },
                             "start_period": {
                                 "type": "string",
-                                "description": "Período inicial en formato YYYY-MM (ej: '2021-05')"
+                                "description": "Período inicial en formato YYYY-MM (ej: '2021-05')",
                             },
                             "end_period": {
-                                "type": "string", 
-                                "description": "Período final en formato YYYY-MM (ej: '2025-05')"
+                                "type": "string",
+                                "description": "Período final en formato YYYY-MM (ej: '2025-05')",
                             },
                             "rentability_type": {
                                 "type": "string",
                                 "enum": ["nominal", "real", "both"],
-                                "description": "Tipo de rentabilidad a consultar"
-                            }
+                                "description": "Tipo de rentabilidad a consultar",
+                            },
                         },
-                        "required": ["afp_names", "fund_types", "start_period", "end_period"]
-                    }
-                }
-            }
+                        "required": [
+                            "afp_names",
+                            "fund_types",
+                            "start_period",
+                            "end_period",
+                        ],
+                    },
+                },
+            },
+        ]
 
     def create_assistant(self) -> str:
         """Crea el asistente especializado en rentabilidad de fondos SPP con formato mejorado"""
@@ -769,14 +774,15 @@ ESTILO PROFESIONAL:
     def _get_rentability_by_date_range(self, args: Dict) -> Dict:
         """Obtiene rentabilidad para un RANGO COMPLETO de períodos"""
         afp_names = args.get("afp_names", [])
-        fund_types = args.get("fund_types", [])  
+        fund_types = args.get("fund_types", [])
         start_period = args.get("start_period", "")
         end_period = args.get("end_period", "")
         rentability_type = args.get("rentability_type", "both")
-        
+
         return self.data_manager.get_rentability_by_date_range(
             afp_names, fund_types, start_period, end_period, rentability_type
         )
+
 
 # Función para Azure Functions
 def main(req):
