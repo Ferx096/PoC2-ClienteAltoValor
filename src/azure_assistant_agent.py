@@ -364,8 +364,7 @@ DETECCIÓN AUTOMÁTICA DE RANGOS TEMPORALES:
 
 EJEMPLO DE FORMATO DE RESPUESTA OBLIGATORIO PARA RANGOS:
 
-**Período Analizado:**
-• **Desde:** [fecha inicial], **Hasta** : [fecha final] 
+• **Período Analizado:** Desde : [fecha inicial], Hasta : [fecha final] 
 • **Tipo de fondo:** [número]
 • **AFPs incluidas:** [lista de AFPs]
 
