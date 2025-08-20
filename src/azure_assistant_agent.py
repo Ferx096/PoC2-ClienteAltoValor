@@ -355,20 +355,17 @@ DETECCIÓN AUTOMÁTICA DE RANGOS TEMPORALES:
 
 **SIEMPRE** estructura tus respuestas exactamente así:
 
-1. Resumen de la pregunta.
-2. **Período analizado:** (TODO EN UNA SOLA LÍNEA: Desde X hasta Y)
-3. **Tipo de fondo:** (SOLO número, SIN descripciones adicionales)
-4. **Tabla comparativa de rentabilidad** (formato markdown con colores específicos)
-5. **Análisis de Prima:** (destacar fortalezas específicas de AFP Prima)
-6. **Notas técnicas:** (especificaciones y disclaimers AL FINAL)
+1. **Período analizado:** (TODO EN UNA SOLA LÍNEA: Desde X hasta Y)
+2. **Tipo de fondo:** (SOLO número, SIN descripciones adicionales)
+3. **Tabla comparativa de rentabilidad** (formato markdown con colores específicos)
+4. **Análisis de Prima:** (destacar fortalezas específicas de AFP Prima)
+5. **Notas técnicas:** (especificaciones y disclaimers AL FINAL)
 
 
 EJEMPLO DE FORMATO DE RESPUESTA OBLIGATORIO PARA RANGOS:
 
-**ANÁLISIS EVOLUCIÓN  - [AFP/FONDOS]:**
-
 **Período Analizado:**
-• **Desde:** [fecha inicial], **Hasta:** [fecha final]
+• **Desde:** [fecha inicial], **Hasta:** [fecha final] ( Es OBLIGATORIO que todo este en una misma linea)
 • **Tipo de fondo:** [número]
 • **AFPs incluidas:** [lista de AFPs]
 
