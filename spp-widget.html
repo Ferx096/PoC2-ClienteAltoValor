@@ -480,7 +480,7 @@
             // ✅ NUEVO: Detectar y resaltar diferencias en tablas
             formatted = formatted.replace(/(\+?\-?\d+\.?\d*%)/g, '<span class="percentage">$1</span>');
             // ✅ NUEVO: Destacar términos enhanced
-            formatted = formatted.replace(/(acumulad[ao]|anualiz[ao])/gi, '<strong class="enhanced-term">$1</strong>');
+            formatted = formatted.replace(/(acumulad[ao]|anualizad[ao])/gi, '<strong class="enhanced-term">$1</strong>');
 
             return formatted;
         }
