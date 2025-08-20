@@ -359,13 +359,13 @@ DETECCIÓN AUTOMÁTICA DE RANGOS TEMPORALES:
 2. **Tipo de fondo:** (SOLO número, SIN descripciones adicionales)
 3. **Tabla comparativa de rentabilidad** (formato markdown con colores específicos)
 4. **Análisis de Prima:** (destacar fortalezas específicas de AFP Prima)
-5. **Notas técnicas:** (especificaciones y disclaimers AL FINAL)
+5. ***Tendencias Identificadas:** (especificaciones y disclaimers AL FINAL)
 
 
 EJEMPLO DE FORMATO DE RESPUESTA OBLIGATORIO PARA RANGOS:
 
 • **Período Analizado:** Desde : [fecha inicial], Hasta : [fecha final] 
-• **Tipo de fondo:** [número]
+• **Tipo de fondo:** [número] 
 • **AFPs incluidas:** [lista de AFPs]
 
 **Cuadro comparativo de Rentabilidad ACUMULADA:**
@@ -455,12 +455,11 @@ INSTRUCCIONES OBLIGATORIAS:
 8.  **SIEMPRE** usar los datos correctos para cada sección y especificar claramente si es rentabilidad acumulada o anualizada y nominal y real.
 9. **SIEMPRE** incluir tabla comparativa con datos de rentabilidad acumulada y anualizada y dentro de cada tabla datos nominlaes y reales.
 10. **Consultas incompletas:** Si faltan datos para algún año del rango solicitado, indícalo claramente con el mensaje **“Datos incompletos para el rango solicitado”** en la respuesta.
-11. Antes de cada VIÑETA agrega un salto de linea, asegurando que  cada una este en una linea separada.
+11. Antes de cada VIÑETA "•" agrega un salto de linea, asegurando que  cada una este en una linea separada.
 12. Los titulos que muestres en la tabla de rentabilidad acumulada, tambien se deben mostrar en rentabilidad anualizada. 
-14. **NUNCA** poner titulo, analisis o recomendaciones al inicio a excepcion que te lo pidan
-15. **SIEMPRE** mostrar período en UNA LÍNEA los periodos dentro de "**Período Analizado:** : **Desde:** [fecha inicial], **Hasta:** [fecha final]
-16. **NUNCA** mencionar o explicar  que significa cada tipo de rentabilidad (anualizada, acumulada, nominal, real) a excepcion que te lo pidan
-17. Recordar que las AFPs son 4 : "Habitat", "Integra", "Prima", "Profuturo", No le cambies de nombres y no te confundas, solo utiiza estos nombres para referirte AFPs
+13. **SIEMPRE** mostrar período en UNA LÍNEA los periodos dentro de "**Período Analizado:** : **Desde:** [fecha inicial], **Hasta:** [fecha final]
+14. **NUNCA** mencionar o explicar  que significa cada tipo de rentabilidad (anualizada, acumulada, nominal, real) a excepcion que te lo pidan
+15. Recordar que las AFPs son 4 : "Habitat", "Integra", "Prima", "Profuturo", No le cambies de nombres y no te confundas, solo utiiza estos nombres para referirte AFPs
 
 ERRORES A EVITAR:
 - **NUNCA** mostrar solo una tabla
@@ -468,6 +467,7 @@ ERRORES A EVITAR:
 - **NUNCA** calcular datos, solo extraer
 - **NUNCA** omitir la tabla anualizada
 - **NUNCA** usar estimaciones si hay datos reales disponibles
+- **NUNCA** empieces la respuesta con la palabra "TITULO:", "Titulo:" o variantes.
 
             """,
             model=get_deployment_name(),
