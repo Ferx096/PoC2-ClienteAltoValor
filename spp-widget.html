@@ -169,17 +169,11 @@
 
         .percentage {
             font-weight: 600;
-            color: #28a745;
-            background: #e8f5e8;
+            color: #0056b3;
             padding: 2px 4px;
             border-radius: 3px;
             font-size: 11px;
             white-space: nowrap;
-        }
-
-        .percentage.negative {
-            color: #dc3545;
-            background: #ffeaea;
         }
 
         .highlight {
@@ -373,7 +367,7 @@
 
         <div id="chat-messages">
             <div class="message agent-message">
-                <div class="message-label">Agente Consejero SPP</div>
+                <div class="message-label">Agente Consejero de Alto Valor</div>
                 <div class="message-content">
                     ¡Hola! Soy tu <strong>Agente Consejero de Alto Valor SPP</strong>, especializado en análisis de
                     rentabilidad de fondos de pensiones.
@@ -396,18 +390,16 @@
         <div class="examples">
             <h4>💡 Ejemplos de consultas:</h4>
             <div class="example-query"
-                onclick="setQuery('¿Cuál es la rentabilidad actual de Habitat en el fondo conservador?')">
-                🏦 Rentabilidad de Habitat en fondo conservador
-            </div>
-            <div class="example-query" onclick="setQuery('Compara Prima vs Integra en todos los fondos')">
-                ⚖️ Compara Prima vs Integra en todos los fondos
+                onclick="setQuery('¿Cuál es la rentabilidad anualizada en el fondo 1 de mayo 2021 a mayo 2025 de Prima vs. Habitat?')">
+                🏦 Comparacion de tipo de rentabilidad (anualizada/acumulada) por periodos entre AFPs
             </div>
             <div class="example-query"
                 onclick="setQuery('¿Qué tipo de fondo recomiendas para una persona de 30 años?')">
                 🎯 Recomendación para persona de 30 años
             </div>
-            <div class="example-query" onclick="setQuery('Muestra la rentabilidad de todas las AFPs en una tabla')">
-                📊 Tabla comparativa de todas las AFPs
+            <div class="example-query"
+                onclick="setQuery('¿Cual es la rentabilidad nominal del fondo 1 de Integra versus Prima de enero 2024 a enero 2025?')">
+                📊 Tabla comparativa de rentabilidad especifica (nominal/real) de periodos entre AFPs
             </div>
         </div>
 
@@ -419,7 +411,6 @@
 
     <script>
         const API_URL = 'https://sbsfuncion-e4crawc6f5hegkhj.eastus-01.azurewebsites.net/api/chat';
-
         const chatMessages = document.getElementById('chat-messages');
         const chatInput = document.getElementById('chat-input');
         const sendBtn = document.getElementById('send-btn');
@@ -456,6 +447,10 @@
 
         function formatResponse(text) {
             let formatted = text;
+
+            // encabezados convertir markdown ## a H2
+            formatted = formatted.replace(/^## (.*$)/gm, '<h2>$1</h2>');
+            formatted = formatted.replace(/^### (.*$)/gm, '<h3>$1</h3>');
 
             // Convertir títulos marcados con **TEXTO:**
             formatted = formatted.replace(/\*\*(.*?):\*\*/g, '<h3><strong>$1:</strong></h3>');
@@ -583,17 +578,6 @@
                 sendMessage();
             }
         });
-
-        chatInput.focus();
-
-        setTimeout(() => {
-            addMessage(`💡 <strong>Tip de formato:</strong> Para obtener mejores respuestas visuales, puedes preguntar:
-            <ul>
-                <li>"Muestra en tabla la rentabilidad de todas las AFPs"</li>
-                <li>"Compara los fondos con datos organizados"</li>
-                <li>"Dame un análisis detallado con porcentajes destacados"</li>
-            </ul>`);
-        }, 2000);
     </script>
     <style>
         .enhanced-term {
