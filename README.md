@@ -333,8 +333,8 @@ func azure functionapp publish tu-function-app
 
 - **Cache RAM:** <100ms
 - **Cache Blob:** <500ms
-- **Consulta completa:** 1-3 segundos
-- **Procesamiento Excel:** 2-5 segundos por archivo
+- **Consulta en llm:** 3-6 segundos
+- **Procesamiento Excel:** 3-7 segundos por archivo, depende la complejidad de la consulta
 
 ### Capacidad:
 
